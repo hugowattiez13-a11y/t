@@ -134,6 +134,39 @@ acc('epaule','drone','Mini-drone',520,'torso',[PT('sphere',-.85,1.0,0,.22,.14,.2
   acc('epaule','mp_robot','Mini-robot',300,'torso',[PT('rbox',.42,.68,0,.24,.24,.24,'#9aa4b2',MET),PT('box',.42,.7,.13,.14,.05,.01,'#39ffb6',{emis:1})]);
 })();
 
+/* ---------- Collection « Mégapack 2 » : ~95 objets de plus ---------- */
+(()=>{const C2=[['corail','#ff7a59'],['menthe','#6ee7b7'],['lavande','#b8a1ff'],['ciel','#7cc4ff'],['sable','#e6c27a'],['cerise','#c0202a'],['nuit','#160f3a'],['citron','#e8ff5a'],['chocolat','#5a3a24'],['glace','#d8f3ff'],['flamme','#ff5a1a'],['jade','#00a86b']];
+  const dk=(h,k=.6)=>{const n=parseInt(h.slice(1),16);return'#'+[(n>>16&255)*k,(n>>8&255)*k,(n&255)*k].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('')};const pr=i=>[30,45,60,90,120,160,220,300,420,600][i%10];
+  const TOPS=[['galaxy','Haut galaxie',{}],['ninja','Tenue ninja',{sleeve:'long'}],['labcoat','Blouse',{sleeve:'long'}],['kimono','Kimono',{sleeve:'long'}],['armor','Armure',{}],['logo','T-shirt logo',{}]];
+  let k=0;TOPS.forEach(([pat,n,o],t)=>{for(let c=0;c<5;c++){const[cn,cc]=C2[(t*3+c*2)%C2.length],c2=C2[(t*3+c*2+6)%C2.length][1];add('haut',`m2_h${t}_${c}`,`${n} ${cn}`,pr(k++)+t*40,{c:cc,c2,pat,...o})}});
+  const BOTS=[['galaxy','Bas galaxie'],['ninja','Pantalon ninja'],['jeans','Jean'],['sport','Survêt'],['skirt','Jupe'],['cargo','Cargo']];
+  k=0;BOTS.forEach(([pat,n],t)=>{for(let c=0;c<4;c++){const[cn,cc]=C2[(t*5+c*3+2)%C2.length];add('bas',`m2_b${t}_${c}`,`${n} ${cn}`,pr(k++)+t*20,{c:cc,c2:C2[(t+c+4)%C2.length][1],pat,shoes:C2[(t*2+c)%C2.length][1]})}});
+  C2.slice(0,6).forEach(([cn,cc],i)=>hat('m2_hf_'+i,'Haut-de-forme '+cn,160+i*20,[PT('cyl',0,.5,0,.5,.52,.5,cc,{shin:60}),PT('cyl',0,.26,0,.86,.04,.86,cc),PT('cyl',0,.33,0,.51,.1,.51,dk(cc,.5))]));
+  C2.slice(6,11).forEach(([cn,cc],i)=>hat('m2_cour_'+i,'Couronne '+cn,600+i*150,[PT('cyl',0,.36,0,.58,.18,.58,cc,{shin:200,metal:1}),...[0,1,2,3,4].map(j=>PT('cone',Math.sin(j*1.2566)*.24,.52,Math.cos(j*1.2566)*.24,.12,.18,.12,cc,{shin:200,metal:1})),PT('sphere',0,.38,.29,.08,.08,.04,'#ffffff',{emis:.8})]));
+  hat('m2_casque_chev','Casque de chevalier',480,[PT('sphere',0,.1,0,.9,.9,.9,'#9aa4b2',{shin:200,metal:1}),PT('box',0,.06,.4,.5,.08,.04,'#15161b'),PT('cone',0,.6,-.05,.08,.4,.25,'#c0202a')]);
+  hat('m2_viking','Casque viking',360,[PT('sphere',0,.22,0,.82,.6,.82,'#8a8f98',{shin:160,metal:1}),PT('cone',.42,.42,0,.12,.4,.12,'#f2ead8',{rz:-.9}),PT('cone',-.42,.42,0,.12,.4,.12,'#f2ead8',{rz:.9})]);
+  hat('m2_astronaute','Casque d\'astronaute',900,[PT('sphere',0,.05,0,1.05,1.05,1.05,'#f2f2f2',{shin:120}),PT('sphere',0,.05,.25,.7,.55,.6,'#2a5d8a',{shin:255,emis:.15})]);
+  hat('m2_sombrero','Sombrero',220,[PT('cyl',0,.26,0,1.6,.05,1.6,'#e6c27a'),PT('cone',0,.55,0,.6,.55,.6,'#e6c27a'),PT('cyl',0,.32,0,.62,.08,.62,'#e5484d')]);
+  hat('m2_bandana','Bandana',70,[PT('sphere',0,.22,-.02,.76,.4,.76,'#e5484d'),PT('cone',0,.12,-.42,.12,.22,.08,'#e5484d',{rx:-1})]);
+  hat('m2_antennes','Antennes d\'alien',150,[PT('cyl',.18,.55,0,.04,.45,.04,'#2fbf71'),PT('cyl',-.18,.55,0,.04,.45,.04,'#2fbf71'),PT('sphere',.18,.8,0,.12,.12,.12,'#39ffb6',{emis:1}),PT('sphere',-.18,.8,0,.12,.12,.12,'#39ffb6',{emis:1})]);
+  hat('m2_chat','Oreilles de chat',120,[PT('cone',.24,.45,0,.18,.26,.1,'#22252b',{rz:-.25}),PT('cone',-.24,.45,0,.18,.26,.1,'#22252b',{rz:.25}),PT('cone',.24,.43,.02,.1,.16,.05,'#ffb3c8',{rz:-.25}),PT('cone',-.24,.43,.02,.1,.16,.05,'#ffb3c8',{rz:.25})]);
+  hat('m2_feu','Couronne de flammes',1500,[0,1,2,3,4,5].map(j=>PT('cone',Math.sin(j*1.047)*.3,.48,Math.cos(j*1.047)*.3,.14,.38,.14,j%2?'#ffd23f':'#ff5a1a',{emis:1.4})));
+  C2.slice(0,8).forEach(([cn,cc],i)=>acc('dos','m2_ailes_'+i,'Ailes '+cn,350+i*60,'torso',wing(cc,{emis:i>4?.4:.15})));
+  C2.slice(8,12).forEach(([cn,cc],i)=>acc('dos','m2_cape_'+i,'Cape '+cn,150+i*40,'torso',[PT('box',0,-.12,-.3,.98,1.25,.04,cc,{rx:.12,anim:'cape'})]));
+  acc('dos','m2_epee','Épée dans le dos',320,'torso',[PT('box',0,.1,-.38,.12,1.3,.06,'#d8dee6',{rz:.6,shin:240,metal:1}),PT('box',-.28,-.36,-.38,.4,.08,.08,'#8d5a2b',{rz:.6})]);
+  acc('dos','m2_bouclier','Bouclier',260,'torso',[PT('cyl',0,0,-.42,.8,.08,.8,'#3d7eff',{rx:Math.PI/2}),PT('sphere',0,0,-.48,.18,.18,.06,'#ffd23f',{metal:1,shin:200})]);
+  acc('dos','m2_planche','Planche de surf',280,'torso',[PT('sphere',0,0,-.4,.38,1.5,.06,'#39c5bb'),PT('box',0,0,-.44,.05,1.3,.01,'#ffffff')]);
+  acc('cou','m2_collier_perles','Collier de perles',120,'torso',[PT('torusThin',0,.4,.08,1.05,1.05,1.05,'#f8f4ea',{rx:.5,shin:240})]);
+  acc('cou','m2_foulard','Foulard',60,'torso',[PT('cone',0,.32,.28,.3,.3,.06,'#e5484d',{rx:Math.PI})]);
+  acc('cou','m2_casque_audio','Casque audio au cou',190,'torso',[PT('torusThin',0,.46,0,.95,.6,.95,'#22252b'),PT('cyl',.36,.44,.15,.2,.08,.2,'#e5484d',{rz:Math.PI/2}),PT('cyl',-.36,.44,.15,.2,.08,.2,'#e5484d',{rz:Math.PI/2})]);
+  acc('epaule','m2_hibou','Hibou',280,'torso',[PT('sphere',.42,.64,0,.22,.28,.2,'#8d6e63'),PT('sphere',.36,.74,.14,.07,.07,.03,'#ffd23f',{emis:.6}),PT('sphere',.48,.74,.14,.07,.07,.03,'#ffd23f',{emis:.6})]);
+  acc('epaule','m2_dragonnet','Dragonnet',650,'torso',[PT('sphere',.42,.64,0,.22,.2,.3,'#e5484d'),PT('sphere',.42,.8,.16,.15,.14,.16,'#e5484d'),PT('cone',.36,.92,.12,.04,.1,.04,'#ffd23f'),PT('cone',.48,.92,.12,.04,.1,.04,'#ffd23f'),PT('sphere',.56,.66,-.05,.2,.1,.14,'#ff8a8a',{rz:-.6})]);
+  acc('epaule','m2_fantome','Mini fantôme',340,'torso',[PT('sphere',.44,.7,0,.24,.3,.24,'#f2f2f2',{emis:.3}),PT('sphere',.38,.76,.18,.05,.07,.02,'#15161b'),PT('sphere',.5,.76,.18,.05,.07,.02,'#15161b')]);
+  acc('lunettes','m2_monocle','Monocle',140,'head',[PT('torusThin',.13,.03,.35,.24,.24,.24,'#f2c14e',{rx:Math.PI/2,metal:1,shin:200})]);
+  acc('lunettes','m2_visiere','Visière cyber',380,'head',[PT('box',0,.04,.36,.62,.12,.04,'#22e3ff',{emis:1.2,shin:240})]);
+  acc('lunettes','m2_barbe','Barbe de pirate',90,'head',[PT('sphere',0,-.2,.3,.44,.3,.16,'#3b2617')]);
+})();
+
 /* ---------- Emotes ---------- */
 [['salut','Saluer',0],['danse','Danser',0],['applaudir','Applaudir',0],['pointe','Pointer',0],['robot','Danse robot',120],['disco','Disco',150],['toupie','Toupie',90],['flexion','Pompes',75],['dab','Dab',60],['rire','Fou rire',0],['pleurer','Pleurer',40],['hourra','Hourra !',0],['courbette','Courbette',50],['assis','S\'asseoir',0],['salto','Salto arrière',200],['zombie','Zombie',110],['guitare','Air guitare',160],['moonwalk','Glissé',180],['meditation','Méditation',90],['muscles','Muscles',70]].forEach(([id,n,p])=>add('emote','e_'+id,n,p,{emote:id}));
 

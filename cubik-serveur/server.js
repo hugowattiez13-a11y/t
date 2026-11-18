@@ -2,9 +2,11 @@
 //  Serveur Cubik — multijoueur, comptes, Hub et projets d'équipe sans Claude
 //  Aucune dépendance : Node.js 18 ou plus.   Lancer :  node server.js
 //  Variables : PORT (8080 par défaut), DATA (dossier des données, ./data)
+//  Sauvegarde qui survit aux redéploiements : GITHUB_TOKEN + GIST_ID (voir LISEZMOI)
+//  Export / import manuel : ADMIN_KEY  →  /admin/backup?key=…
 // =============================================================================
 'use strict';
-const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
+const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto'), zlib = require('zlib');
 const PORT = +process.env.PORT || 8080;
 const PUB = path.join(__dirname, 'public');
 const DATA_DIR = process.env.DATA || path.join(__dirname, 'data');
@@ -15,8 +17,33 @@ const MAX_DOC = 400 * 1024, MAX_DOCS = 60000, MAX_PEERS_PER_ROOM = 40;
 fs.mkdirSync(DATA_DIR, { recursive: true });
 let store = new Map();
 try { store = new Map(Object.entries(JSON.parse(fs.readFileSync(DB_FILE, 'utf8')))); console.log(`📦 ${store.size} documents chargés`); } catch (e) { }
-let dirty = false;
-setInterval(() => { if (!dirty) return; dirty = false; const tmp = DB_FILE + '.tmp'; fs.writeFile(tmp, JSON.stringify(Object.fromEntries(store)), e => { if (!e) fs.rename(tmp, DB_FILE, () => { }); }); }, 5000);
+let dirty = false, cloudDirty = false;
+// ---------- sauvegarde dans un Gist GitHub (survit aux redéploiements Render) ----------
+const GH = process.env.GITHUB_TOKEN, GIST = process.env.GIST_ID, ADMIN = process.env.ADMIN_KEY || '';
+const ghHead = () => ({ Authorization: 'Bearer ' + GH, Accept: 'application/vnd.github+json', 'User-Agent': 'cubik-server', 'Content-Type': 'application/json' });
+const packStore = () => zlib.gzipSync(JSON.stringify(Object.fromEntries(store))).toString('base64');
+async function cloudLoad() {
+  if (!GH || !GIST) { console.log('ℹ️  Pas de GITHUB_TOKEN/GIST_ID : sauvegarde locale seulement (effacée à chaque redéploiement sur Render gratuit).'); return; }
+  try {
+    const r = await fetch('https://api.github.com/gists/' + GIST, { headers: ghHead() }); if (!r.ok) throw new Error('HTTP ' + r.status);
+    const g = await r.json(), f = g.files && g.files['cubik-store.b64']; if (!f) { console.log('☁️  Gist vide : première sauvegarde bientôt.'); return; }
+    let txt = f.content; if (f.truncated) txt = await (await fetch(f.raw_url, { headers: ghHead() })).text();
+    const data = JSON.parse(zlib.gunzipSync(Buffer.from(txt.trim(), 'base64')).toString('utf8'));
+    let n = 0; for (const [k, v] of Object.entries(data)) if (!store.has(k)) { store.set(k, v); n++; }
+    dirty = true; console.log(`☁️  Sauvegarde GitHub restaurée : ${n} documents.`);
+  } catch (e) { console.log('⚠️  Lecture du Gist impossible :', e.message); }
+}
+let saving = false;
+async function cloudSave(force) {
+  if (!GH || !GIST || saving || (!cloudDirty && !force)) return; saving = true; cloudDirty = false;
+  try {
+    const r = await fetch('https://api.github.com/gists/' + GIST, { method: 'PATCH', headers: ghHead(), body: JSON.stringify({ files: { 'cubik-store.b64': { content: packStore() } } }) });
+    if (!r.ok) throw new Error('HTTP ' + r.status); console.log(`☁️  Sauvegardé sur GitHub (${store.size} documents)`);
+  } catch (e) { cloudDirty = true; console.log('⚠️  Sauvegarde GitHub ratée :', e.message); } finally { saving = false; }
+}
+setInterval(() => cloudSave(false), 90 * 1000);
+for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, async () => { console.log('Arrêt : sauvegarde finale…'); try { fs.writeFileSync(DB_FILE, JSON.stringify(Object.fromEntries(store))); } catch (e) { } await Promise.race([cloudSave(true), new Promise(r => setTimeout(r, 8000))]); process.exit(0); });
+setInterval(() => { if (!dirty) return; dirty = false; cloudDirty = true; const tmp = DB_FILE + '.tmp'; fs.writeFile(tmp, JSON.stringify(Object.fromEntries(store)), e => { if (!e) fs.rename(tmp, DB_FILE, () => { }); }); }, 5000);
 const validPath = p => typeof p === 'string' && p.length < 300 && /^[A-Za-z0-9_\-./]+$/.test(p) && !p.includes('..') && p.split('/').length % 2 === 0;
 const collOf = p => p.slice(0, p.lastIndexOf('/'));
 
@@ -25,6 +52,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const ROUTES = { '/': 'index.html', '/studio': 'studio.html', '/hub': 'hub.html' };
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent((req.url || '/').split('?')[0]);
+  if (url.startsWith('/admin/')) return admin(req, res, url);
   const file = ROUTES[url] || url.replace(/^\/+/, '');
   const full = path.join(PUB, file);
   if (!full.startsWith(PUB)) { res.writeHead(403); return res.end(); }
@@ -35,6 +63,16 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': TYPES[ext] || 'application/octet-stream', 'Cache-Control': 'no-cache' }); res.end(buf);
   });
 });
+
+function admin(req, res, url) {
+  const key = new URLSearchParams((req.url.split('?')[1]) || '').get('key') || '';
+  const ok = ADMIN && key.length === ADMIN.length && crypto.timingSafeEqual(Buffer.from(key), Buffer.from(ADMIN));
+  if (!ok) { res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Clé admin invalide (variable ADMIN_KEY).'); }
+  if (url === '/admin/backup') { res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Disposition': 'attachment; filename="cubik-sauvegarde.json"' }); return res.end(JSON.stringify(Object.fromEntries(store))); }
+  if (url === '/admin/restore' && req.method === 'POST') { const ch = []; let n = 0; req.on('data', d => { n += d.length; if (n < 200e6) ch.push(d); }); req.on('end', () => { try { const data = JSON.parse(Buffer.concat(ch).toString('utf8')); for (const [k, v] of Object.entries(data)) store.set(k, v); dirty = true; res.writeHead(200); res.end('Restauré : ' + Object.keys(data).length + ' documents'); } catch (e) { res.writeHead(400); res.end('Fichier invalide'); } }); return; }
+  if (url === '/admin/save') { cloudSave(true).then(() => { res.writeHead(200); res.end('OK'); }); return; }
+  res.writeHead(404); res.end();
+}
 
 // ---------- WebSocket minimal (RFC 6455) ----------
 const clients = new Set(), rooms = new Map(), subs = new Map();
@@ -118,10 +156,10 @@ function handle(c, m) {
 }
 function notify(p, v) { const set = subs.get(collOf(p)); if (!set) return; const id = p.slice(p.lastIndexOf('/') + 1); for (const c of set) send(c, { t: 'chg', c: collOf(p), id, v }); }
 
-server.listen(PORT, () => {
+cloudLoad().finally(() => server.listen(PORT, () => {
   const nets = require('os').networkInterfaces(); const ips = [];
   for (const l of Object.values(nets)) for (const n of l || []) if (n.family === 'IPv4' && !n.internal) ips.push(n.address);
   console.log(`\n🎮 Serveur Cubik prêt !\n   Jeu    : http://localhost:${PORT}/\n   Studio : http://localhost:${PORT}/studio\n   Hub    : http://localhost:${PORT}/hub`);
   if (ips.length) console.log(`   Sur ton réseau (amis à la maison) : ${ips.map(i => `http://${i}:${PORT}/`).join('  ')}`);
   console.log('   Ctrl+C pour arrêter.\n');
-});
+}));

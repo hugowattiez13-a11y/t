@@ -49,3 +49,35 @@ et indique son dossier avec la variable `DATA` (ex. `DATA=/data`).
 - Les serveurs privés et le filtre se font côté jeu : quelqu'un qui modifie le code pourrait les contourner.
 - L'assistant IA Blocky du Studio et la vérification IA des images du Hub n'existent que dans la version Claude.
 - 40 joueurs maximum par salon, documents de 400 Ko maximum, 60 000 documents.
+
+---
+
+## 💾 Garder les sauvegardes même quand Render redéploie (gratuit)
+
+Sur l'offre gratuite de Render, le disque est effacé à chaque redéploiement. Le serveur Cubik peut
+sauvegarder automatiquement toutes les données (comptes, Blox, objets, Hub, projets…) dans un **Gist GitHub privé**
+et les recharger tout seul au démarrage.
+
+1. **Créer le Gist** : va sur https://gist.github.com, nom du fichier `cubik-store.b64`, contenu `vide`,
+   clique **Create secret gist**. Dans l'adresse de la page (`gist.github.com/tonpseudo/XXXXXXXX`),
+   copie la partie `XXXXXXXX` : c'est le **GIST_ID**.
+2. **Créer un jeton** : GitHub → photo de profil → **Settings** → **Developer settings** →
+   **Personal access tokens** → **Tokens (classic)** → **Generate new token (classic)**.
+   Coche seulement **gist**, durée « No expiration », puis **Generate**. Copie le jeton (`ghp_…`).
+3. **Dans Render** : ton service → **Environment** → **Add Environment Variable** :
+   - `GITHUB_TOKEN` = le jeton `ghp_…`
+   - `GIST_ID` = l'identifiant du Gist
+   - (optionnel) `ADMIN_KEY` = un mot de passe à toi, pour les sauvegardes manuelles
+   Clique **Save Changes** (Render redémarre).
+4. Dans les **Logs** tu dois voir `☁️ Gist vide : première sauvegarde bientôt` puis, après 1 à 2 minutes,
+   `☁️ Sauvegardé sur GitHub`.
+
+Le serveur sauvegarde toutes les 90 secondes quand quelque chose a changé, et une dernière fois juste avant
+un redéploiement. Au redémarrage il affiche `☁️ Sauvegarde GitHub restaurée : N documents`.
+
+⚠️ Ne mets jamais ton jeton dans un fichier sur GitHub : seulement dans les variables de Render.
+
+### Sauvegarde manuelle (avec ADMIN_KEY)
+- Télécharger : `https://ton-site.onrender.com/admin/backup?key=TON_ADMIN_KEY`
+- Forcer une sauvegarde GitHub : `https://ton-site.onrender.com/admin/save?key=TON_ADMIN_KEY`
+- Restaurer un fichier : `curl -X POST --data-binary @cubik-sauvegarde.json "https://ton-site.onrender.com/admin/restore?key=TON_ADMIN_KEY"`

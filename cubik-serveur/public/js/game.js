@@ -167,7 +167,7 @@ function updPrompts(VP){const el=$('prompt');let best=null,bd=4.2;for(const pr o
   el.style.display='flex';el.querySelector('.pl').textContent=best.label;el.querySelector('.pn').textContent=best.who.name;el.style.transform=`translate(${p[0]}px,${p[1]}px) translate(-50%,-50%)`}
 function usePrompt(){if(promptCur&&!dialogOpen()){SFX.click();promptCur.act();return true}return false}
 const dialogOpen=()=>$('dialog').classList.contains('open');
-function openDialog(name,text,buttons){const d=$('dialog');d.querySelector('.dn').textContent=name;d.querySelector('.dt').textContent=text;const bx=d.querySelector('.db');bx.innerHTML='';
+function openDialog(name,text,buttons){const d=$('dialog');d.querySelector('.dn').textContent=name;d.querySelector('.dt').textContent=text;const bx=d.querySelector('.db');bx.innerHTML='';bx.classList.remove('grid');
   for(const[label,fn]of buttons){const b=document.createElement('button');b.className='btn'+(fn?'':' pri');b.textContent=label;b.onclick=()=>{SFX.click();const keep=fn&&fn();if(keep&&WORLD.talkShop&&name.startsWith('Forgeronne')){WORLD.talkShop();return}d.classList.remove('open')};bx.appendChild(b)}
   d.classList.add('open');keys.clear();joy={x:0,y:0}}
 
