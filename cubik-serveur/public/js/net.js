@@ -53,16 +53,21 @@ const Lobby={room:null,peers:[],fns:new Set(),where:'menu',
   count(prefix){return this.peers.filter(p=>!p.isMe&&String(p.presence?.where||'').startsWith(prefix)).length},
   servers(game){const m=new Map();for(const p of this.peers){const w=String(p.presence?.where||'');if(w.startsWith('game:'+game+':')){const s=w.split(':')[2];m.set(s,(m.get(s)||0)+(p.isMe?0:1))}}return m},
   online(){return this.peers.filter(p=>!p.isMe).length}};
-const MAX_PER_SERVER=12;
+/* répartition : on remplit un serveur jusqu'à 15 joueurs (limite douce), puis les nouveaux arrivants vont sur le suivant.
+   On peut quand même rejoindre un ami / choisir un serveur jusqu'à la limite dure (20). */
+const MAX_PER_SERVER=20,SOFT_PER_SERVER=15;
 const maxFor=g=>GAMES[g]?.maxPlayers||MAX_PER_SERVER;
-function pickServer(game){const m=Lobby.servers(game);for(let i=1;i<=50;i++){const n=m.get(String(i))||0;if(n<maxFor(game))return String(i)}return'1'}
+const softFor=g=>GAMES[g]?.maxPlayers||SOFT_PER_SERVER;
+function pickServer(game){const m=Lobby.servers(game),soft=softFor(game);let best=null,bn=-1;
+  for(let i=1;i<=60;i++){const s=String(i),n=m.get(s)||0;if(n<soft&&n>bn){best=s;bn=n}if(!m.has(s)&&best)break}
+  if(best)return best;for(let i=1;i<=200;i++)if(!m.get(String(i)))return String(i);return'1'}
 
 /* ============================================================================
    MULTIJOUEUR EN JEU : chaque joueur partage sa position, son animation,
    son avatar, le chat, les emotes et son score (présence, ~10 fois/s)
    ============================================================================ */
 const MP={room:null,remote:new Map(),seq:0,sendT:0,lastSent:'',chat:null,react:null,server:'1',game:null,unsub:null,
-  async start(game,server){this.stop();this.game=game;this.server=server||pickServer(game);this.priv=String(this.server).startsWith('p')&&START_PRIV?START_PRIV:null;START_PRIV=null;Lobby.set(`game:${game}:${this.server}`);
+  async start(game,server){this.stop();publishWornItems();this.game=game;this.server=server||pickServer(game);this.priv=String(this.server).startsWith('p')&&START_PRIV?START_PRIV:null;START_PRIV=null;Lobby.set(`game:${game}:${this.server}`);
     const r=await Cloud.room(`g-${game}-${this.server}`.toLowerCase().replace(/[^a-z0-9_.-]/g,'-').slice(0,48));if(!r||this.game!==game)return;this.room=r;
     this.unsub=r.onPeers(ch=>this.sync(ch.peers),e=>{});if(Cloud.mode==='server')voiceListen();sys(String(this.server).startsWith('p')?`🔒 Serveur privé · seuls tes amis invités peuvent venir.`:`🌐 Serveur ${this.server} — invite tes amis (menu Amis) !`)},
   stop(){if(this.unsub)try{this.unsub()}catch(e){}if(this.room&&this.room.leave&&this.room!==Cloud.roomApi)this.room.leave().catch(()=>{});this.room=null;this.unsub=null;
@@ -93,4 +98,4 @@ function removeRemote(c){c.left=true;c.bw&&c.bw.remove();const i=chars.indexOf(c
 // avatar compact (ids seulement) pour tenir dans la présence
 const AV_KEYS=['skin','haut','bas','visage','chapeau','cheveux','lunettes','dos','cou','epaule'];
 function compactAv(av){return AV_KEYS.map(k=>av[k]||'')}
-function expandAv(a){const o={...DEFAULT_AV};if(Array.isArray(a))AV_KEYS.forEach((k,i)=>{const v=a[i];if(k==='skin'){if(/^#[0-9a-f]{6}$/i.test(v))o.skin=v}else o[k]=v&&IT[v]&&IT[v].cat===(k)?v:(['haut','bas','visage'].includes(k)?DEFAULT_AV[k]:null)});return o}
+function expandAv(a){const o={...DEFAULT_AV};if(Array.isArray(a))AV_KEYS.forEach((k,i)=>{const v=a[i];if(k==='skin'){if(/^#[0-9a-f]{6}$/i.test(v))o.skin=v}else o[k]=v&&typeof v==='string'&&!IT[v]&&typeof PUB_RE!=='undefined'&&PUB_RE.test(v)&&requestPubItem(v),o[k]=v&&IT[v]&&IT[v].cat===(k)?v:(['haut','bas','visage'].includes(k)?DEFAULT_AV[k]:null)});return o}

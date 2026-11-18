@@ -213,7 +213,7 @@ function buildProps(){const P_=$('stProps');if(!P_||!CUR_GAME)return;P_.innerHTM
   row('ClassName',el('span',{class:'ro',text:kindName}));if(o.group)row('Modèle',el('span',{class:'ro',text:CUR_GAME.groups?.[o.group]?.name||'Modèle'}));
   section('Transformation');row('Position',num('pos',0),num('pos',1),num('pos',2));if(L.length===1)row('Size',num('size',0,.5,.1),num('size',1,.5,.1),num('size',2,.5,.1));
   section('Apparence');
-  if(all(x=>['part','sphere','cyl','neon','glass','mover','bounce','conv','spawn','checkpoint','light','emitter','soundblock','zone','key','door','mesh'].includes(x.type))){const c=el('input',{type:'color',value:o.color||'#a3a2a5'});c.onpointerdown=()=>{};c.onchange=()=>apply(x=>x.color=c.value,true);
+  if(all(x=>['part','sphere','cyl','neon','glass','mover','bounce','conv','spawn','checkpoint','light','emitter','soundblock','zone','key','door','mesh','objectif'].includes(x.type))){const c=el('input',{type:'color',value:o.color||'#a3a2a5'});c.onpointerdown=()=>{};c.onchange=()=>apply(x=>x.color=c.value,true);
     c.oninput=()=>{for(const x of L){x.color=c.value;const b=blocks.find(b=>b.obj===x);if(b)b.color=c.value}};row('Color',c);
     const sw=el('div',{class:'qcol'});for(const h of['#ffffff','#a3a2a5','#1f2028','#e5484d','#ff8a3d','#ffd23f','#2fbf71','#39c5bb','#3d8bff','#7a5cff','#ff4fa3','#8d5524'])sw.append(el('button',{style:`background:${h}`,onclick:()=>apply(x=>x.color=h,true)}));row('',sw)}
   if(all(x=>['part','sphere','cyl','mover'].includes(x.type))){const m=el('select',{});for(const[k,mm]of Object.entries(MATS))if(mm.fr&&!['lave','trampoline','tapis','buche'].includes(k))m.append(el('option',{value:k,text:mm.fr}));m.value=o.mat;m.onchange=()=>apply(x=>x.mat=m.value);row('Material',m);
@@ -466,7 +466,8 @@ function typeProps(o,L,all,apply,section,row,sec){const ty=o.type,num=(k,sub,ste
       if(o.action==='message')row('Message',txt('text'));if(o.action==='son')row('Son',sound());row('Une seule fois',sw(o.once,(x,v)=>x.once=v))}
     if(ty==='mesh'){section('Mesh');row('Mesh',assetSelect('mesh',o.mesh,v=>apply(x=>x.mesh=v)),el('button',{class:'stb',text:'📦',onclick:openAssets}))}
     if(ty==='monster'){section('Monstre');row('Vitesse',num('speed',null,.5,1,20));row('Détection (m)',num('aggro',null,1,3,80));row('Phrase quand il attrape',txt('text'));row('Apparence',sel([['monstre','Monstre'],['fantome','Fantôme'],...Object.keys(NPC_AV).filter(k=>!['monstre','fantome'].includes(k)).map(k=>[k,k])],o.av,(x,v)=>x.av=v))}
-    if(ty==='key'||ty==='door'){section(ty==='key'?'Clé':'Porte');row(ty==='key'?'Nom de la clé':'Clé nécessaire',txt('text'))}}}
+    if(ty==='key'||ty==='door'){section(ty==='key'?'Clé':'Porte');row(ty==='key'?'Nom de la clé':'Clé nécessaire',txt('text'))}
+    if(ty==='objectif'){section('Objectif d\'équipe');row('Ouvre les portes',txt('text'));sec().append(el('div',{class:'note',text:'Partagé par tous les joueurs du serveur : quand TOUS les objectifs sont trouvés, les « Portes à clé » dont la clé porte ce nom s\'ouvrent.'}))}}}
 
 /* ---------- gestionnaire de ressources du projet ---------- */
 function openAssets(){CUR_GAME.assets=CUR_GAME.assets||[];const list=el('div',{class:'alist'}),err=el('div',{class:'aerr'});

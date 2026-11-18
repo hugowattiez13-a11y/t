@@ -35,7 +35,7 @@ function toast(msg,kind){const t=el('div',{class:'toast'+(kind?' '+kind:'')});t.
 function updBlox(){document.querySelectorAll('.bloxAmt').forEach(e=>e.textContent=(ACC?.blox||0).toLocaleString('fr-FR'))}
 function giveBlox(n,reason){if(!ACC||n<=0)return;ACC.blox+=n;ACC.stats.earned+=n;updBlox();SFX.daily();toast(`+${n} {B} ${reason?'· '+reason:''}`,'gold');markDirty()}
 function unlockBadge(id){if(!ACC||ACC.badges.includes(id))return;ACC.badges.push(id);const b=BADGES[id];if(b){setTimeout(()=>toast(`🏅 Badge débloqué : ${b[1]}`),900)}markDirty()}
-const BADGES={obby:['🌈','Maître de l\'Obby','Terminer l\'Obby Arc-en-ciel'],tycoon:['🏭','Magnat','Faire une renaissance dans le Tycoon'],golem:['🗿','Tueur de Golem','Vaincre le Golem de pierre'],collect:['🎒','Collectionneur','Posséder 40 objets'],welcome:['👋','Bienvenue','Créer son compte'],daily7:['📅','Assidu','7 jours de récompense d\'affilée'],createur:['🛠️','Créateur','Créer son premier jeu dans le Studio']};
+const BADGES={obby:['🌈','Maître de l\'Obby','Terminer l\'Obby Arc-en-ciel'],tycoon:['🏭','Magnat','Faire une renaissance dans le Tycoon'],golem:['🗿','Tueur de Golem','Vaincre le Golem de pierre'],collect:['🎒','Collectionneur','Posséder 40 objets'],welcome:['👋','Bienvenue','Créer son compte'],daily7:['📅','Assidu','7 jours de récompense d\'affilée'],createur:['🛠️','Créateur','Créer son premier jeu dans le Studio'],horreur:['🎃','Courageux','S\'échapper d\'un jeu d\'horreur']};
 const ownsEmote=em=>IT['e_'+em]?.price===0||!!ACC?.owned.includes('e_'+em);
 function modal(content,cls=''){const m=el('div',{class:'modal '+cls},el('div',{class:'mcard'},el('button',{class:'mx',text:'✕',onclick:()=>m.remove()}),content));m.addEventListener('pointerdown',e=>{if(e.target===m)m.remove()});document.body.append(m);return m}
 
@@ -56,6 +56,10 @@ function gameThumb(id){if(GTHUMB[id])return GTHUMB[id];const W=640,Hh=360,[c,x]=
   else if(id==='tycoon'){sky('#ffcf7a','#ff8f5a');x.fillStyle='#4a4f5c';x.fillRect(0,250,W,110);x.fillStyle='#30343d';x.fillRect(60,220,440,30);
     for(let i=0;i<4;i++){x.fillStyle='#9aa3ad';x.fillRect(90+i*100,120,60,60);x.fillStyle='#6c737d';x.fillRect(110+i*100,180,20,20);cb(120+i*100,205,10,['#9aa4b2','#4ea8ff','#2fbf71','#b46bff'][i])}
     x.fillStyle='#2a2d33';x.fillRect(500,150,90,100);x.fillStyle='#ff6a1a';x.fillRect(500,190,14,40);x.font='bold 54px system-ui';x.fillStyle='#ffd23f';x.fillText('$',540,120);x.fillText('$',30,90)}
+  else if(id==='manoir'){sky('#0b0614','#3a1f4a');x.fillStyle='#f4f1e0';x.beginPath();x.arc(560,70,34,0,7);x.fill();x.fillStyle='#120b18';x.fillRect(0,280,W,80);x.fillRect(150,120,340,170);x.beginPath();x.moveTo(130,125);x.lineTo(320,40);x.lineTo(510,125);x.fill();for(const tx of[140,440])x.fillRect(tx,80,50,70);
+    for(let i=0;i<8;i++){x.fillStyle=i%3?'#ffcf8a':'#2a1d10';x.fillRect(180+(i%4)*75,150+Math.floor(i/4)*60,30,36)}x.font='110px system-ui';x.fillText('🤡',40,330);x.font='60px system-ui';x.fillText('🍌',520,330)}
+  else if(id==='camp'){sky('#04101a','#1d3b2a');for(let i=0;i<70;i++){x.fillStyle=`rgba(255,255,255,${rh(i)*.8})`;x.fillRect(rh(i*3)*W,rh(i*7)*180,2,2)}x.fillStyle='#0b1a10';for(let i=0;i<12;i++){const tx=i*58;x.beginPath();x.moveTo(tx,300);x.lineTo(tx+30,120+rh(i)*60);x.lineTo(tx+60,300);x.fill()}
+    x.fillStyle='#14281a';x.fillRect(0,290,W,70);x.fillStyle='#ff8a3d';x.beginPath();x.moveTo(300,300);x.quadraticCurveTo(320,220,340,300);x.fill();x.fillStyle='#ffd23f';x.beginPath();x.moveTo(310,300);x.quadraticCurveTo(320,250,330,300);x.fill();x.font='120px system-ui';x.fillText('🧸',430,330)}
   else{sky('#2b1d5a','#ff7a59');x.fillStyle='#1b1430';x.beginPath();x.moveTo(0,270);for(let i=0;i<=W;i+=40)x.lineTo(i,250-((i/40)%3)*20);x.lineTo(W,360);x.lineTo(0,360);x.fill();
     x.fillStyle='#120d22';x.fillRect(420,120,120,150);for(const tx of[410,470,530])x.fillRect(tx,90,26,60);x.fillStyle='#ffd23f';x.fillRect(470,180,14,20);
     x.fillStyle='#5ee04a';x.beginPath();x.ellipse(170,290,60,40,0,Math.PI,0);x.fill();x.fillStyle='#15161b';x.fillRect(150,270,10,14);x.fillRect(185,270,10,14);
@@ -113,15 +117,15 @@ function todayKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+
 function gameCard(id,big){const g=GAMES[id];const im=el('img',{alt:'',loading:'lazy'});im.src=gameThumb(id);
   return el('button',{class:'gcard'+(big?' big':''),'data-g':id,onclick:()=>{SFX.click();gameModal(id)}},el('div',{class:'gimg'},im,el('span',{class:'gtag',text:g.genre})),el('div',{class:'gname',text:g.icon+' '+g.name}),el('div',{class:'gmeta'},progressText(id),onlineBadge(id)))}
 function onlineBadge(id){const n=Lobby.count('game:'+id+':');return n?el('span',{class:'onl',text:` · 🟢 ${n} en ligne`}):null}
-function progressText(id){const s=ACC.games[id]||{};if(id==='obby')return s.done?`Terminé ${s.done}× · record ${fmtT(s.best)}`:s.stage?`Étape ${s.stage}/14`:'Nouveau';if(id==='tycoon')return s.owned?`${(s.owned||[]).length} achats · ${s.reb||0} renaissance(s)`:'Nouveau';
-  if(id==='rpg')return s.lvl?`Niveau ${s.lvl} · ${s.gold} or`:'Nouveau';return(ACC.stats.plays[id]?`Joué ${ACC.stats.plays[id]}×`:'Nouveau')}
+function progressText(id){const s=ACC.games[id]||{};if(id==='obby')return s.done?`Terminé ${s.done}× · record ${fmtT(s.best)}`:s.stage?`Étape ${s.stage}/30`:'Nouveau';if(id==='tycoon')return s.owned?`${(s.owned||[]).length} achats · ${s.reb||0} renaissance(s)`:'Nouveau';
+  if(GAMES[id]?.genre==='Horreur')return s.wins?`Évadé ${s.wins}×`:'Nouveau';if(id==='rpg')return s.lvl?`Niveau ${s.lvl} · ${s.gold} or`:'Nouveau';return(ACC.stats.plays[id]?`Joué ${ACC.stats.plays[id]}×`:'Nouveau')}
 function pgHome(C){const hero=el('div',{class:'hero'});const av=el('img',{class:'heroav',alt:''});av.src=avatarThumb(ACC.avatar);
   const d=ACC.daily,can=d.last!==todayKey();
   hero.append(av,el('div',{class:'herot'},el('h1',{text:`Salut, ${ACC.pseudo} !`}),el('p',{html:`Tu as <b class="bloxAmt"></b> ${BLOX} · ${ACC.owned.length} objets · ${ACC.badges.length} badges`}),
     el('div',{class:'herob'},el('button',{class:'btn green',text:'▶ Jouer',onclick:()=>gameModal(lastGame())}),el('button',{class:'btn',text:'Modifier mon avatar',onclick:()=>go('avatar')}))),
     el('div',{class:'daily'+(can?' ready':'')},el('div',{class:'dt',text:'🎁 Récompense du jour'}),el('div',{class:'ds',text:can?`Série : ${d.streak} jour(s)`:`Reviens demain ! Série : ${d.streak} jour(s)`}),
       el('button',{class:'btn '+(can?'gold':''),disabled:can?null:'',html:can?`Récupérer ${dailyAmount()} ${BLOX}`:'Déjà récupérée',onclick:claimDaily})));
-  C.append(hero,el('h2',{text:'Jeux'}),el('div',{class:'ggrid'},...['obby','tycoon','rpg','sandbox'].map(id=>gameCard(id))));
+  C.append(hero,el('h2',{text:'Jeux'}),el('div',{class:'ggrid'},...['manoir','camp','obby','tycoon','rpg','sandbox'].map(id=>gameCard(id))));
   const news=CATALOG.filter(i=>i.price>0&&i.cat!=='emote'&&!ACC.owned.includes(i.id)).sort((a,b)=>b.price-a.price).slice(0,8);
   C.append(el('h2',{},'Nouveautés en boutique ',el('a',{href:'#',text:'Tout voir →',onclick:e=>{e.preventDefault();go('shop')}})),itemRow(news));updBlox()}
 function lastGame(){let best='obby',n=-1;for(const id in GAMES){if(id==='custom')continue;const p=ACC.stats.plays[id]||0;if(p>n){n=p;best=id}}return best}
@@ -130,7 +134,7 @@ function yesterday(){const d=new Date(Date.now()-864e5);return d.getFullYear()+'
 function claimDaily(){const d=ACC.daily;if(d.last===todayKey())return;const amt=dailyAmount();d.streak=d.last===yesterday()?d.streak+1:1;d.last=todayKey();giveBlox(amt,'Récompense du jour');if(d.streak>=7)unlockBadge('daily7');go('home')}
 function itemRow(items){const r=el('div',{class:'irow'});for(const it of items)r.append(itemCard(it));queueThumbs(r);return r}
 function pgDiscover(C){let f='Tous';const chips=el('div',{class:'chips'}),grid=el('div',{class:'ggrid'});
-  const draw=()=>{chips.innerHTML='';for(const g of['Tous','Obby','Tycoon','Aventure','Détente'])chips.append(el('button',{class:'chip'+(f===g?' on':''),text:g,onclick:()=>{f=g;draw()}}));
+  const draw=()=>{chips.innerHTML='';for(const g of['Tous','Horreur','Obby','Tycoon','Aventure','Détente'])chips.append(el('button',{class:'chip'+(f===g?' on':''),text:g,onclick:()=>{f=g;draw()}}));
     grid.innerHTML='';for(const id in GAMES)if(id!=='custom')if(f==='Tous'||GAMES[id].genre===f)grid.append(el('div',{class:'dcard'},gameCard(id,true),el('p',{text:GAMES[id].desc})))};draw();C.append(chips,grid);
   const pub=(ACC.creations||[]).filter(c=>c.published);C.append(el('h2',{text:'🛠️ Créations Cubik Studio'}),el('p',{class:'note',text:'Les jeux d\'exemple et ceux que tu as publiés depuis le Studio.'}));const cg=el('div',{class:'ggrid'});
   for(const t of TEMPLATES_G.filter(t=>t.example)){const im=el('img',{alt:''});im.src=creationThumb({id:t.id,name:t.name,icon:t.icon,color:t.color,updated:0});cg.append(el('button',{class:'gcard',onclick:()=>playTemplate(t)},el('div',{class:'gimg'},im,el('span',{class:'gtag',text:'Exemple'})),el('div',{class:'gname',text:t.icon+' '+t.name}),el('div',{class:'gmeta',text:t.desc})))}

@@ -15,6 +15,7 @@ PREFABS.push(
   ['jumpscare','Piège jumpscare','😱','horreur',()=>[PO('zone',[0,2,0],[4,4,4],{name:'Jumpscare',action:'jumpscare',once:true})]],
   ['monstre','Monstre','👹','horreur',()=>[PO('monster',[0,1.35,0],null,{name:'La Chose',text:'Je t\'ai trouvé…'})]],
   ['fantome','Fantôme','👻','horreur',()=>[PO('monster',[0,1.35,0],null,{name:'Fantôme',av:'fantome',speed:4.5,aggro:14,text:'Bouh !'})]],
+  ['coop','Objectifs co-op + sortie','💎','horreur',()=>[...[-6,0,6].map((x,i)=>PO('objectif',[x,1.3,-4],null,{name:'Fusible '+(i+1),text:'Sortie'})),PO('door',[0,3,6],[4,6,.5],{name:'Porte de sortie',text:'Sortie',color:'#30343d',mat:'metal'})]],
   ['cleporte','Clé + porte','🗝️','horreur',()=>[PO('key',[-4,1.2,0],null,{name:'Clé rouillée',text:'Clé rouillée'}),PO('door',[4,3,0],[4,6,.5],{name:'Porte verrouillée',text:'Clé rouillée'})]],
   ['bougies','Bougies','🕯️','horreur',()=>[0,1,2].map(i=>PO('emitter',[i*.6-.6,1.1,0],[.1,.1,.1],{name:'Flamme',fx:'feu',color:'#ff9a3d'})).concat([PO('part',[0,.5,0],[2.2,1,.8],{name:'Table',mat:'bois',color:'#3a2618'}),PO('light',[0,1.6,0],null,{name:'Lueur',color:'#ff9a3d',hideBulb:true,light:{range:7,bright:1.6,flicker:.35}})])]);
 function horrorSettings(S){Object.assign(S,{horror:true,clock:0.5,fog:.6,music:'horreur',filter:{preset:'cinema',sat:.55,con:1.15,bri:.8,vig:.85}})}

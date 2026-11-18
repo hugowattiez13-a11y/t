@@ -257,12 +257,12 @@ GAMES.sandbox={name:'Bac à sable',genre:'Détente',icon:'🧱',colors:['#3d7eff
 
 /* ===================================================================== OBBY */
 GAMES.obby={name:'Obby Arc-en-ciel',genre:'Obby',icon:'🌈',colors:['#ff4fa3','#ffd23f'],
-  desc:"14 étapes de parcours : lave, plateformes mobiles, échelles, barres tournantes, pont de verre piégé, glace… Atteins le sommet !",
+  desc:"30 étapes de parcours de plus en plus dures : lave, murs qui poussent, croix tournantes, ponts de verre piégés, toboggan de glace, lasers… Fais la course avec tes amis !",
   badges:['Terminer l\'obby : +100 Blox (puis +15)'],
   build(sv){const G=this;G.sv=sv;sv.stage=sv.stage||0;G.cps=[];G.fades=[];G.fakes=[];G.timer=0;G.running=false;G.done=false;
     let z=0,y=0;const col=i=>hsl((i*26)%360,78,58);
     B(0,-1,4,24,1,24,{color:'#3a3f4b'});
-    const cp=(i,x,yy,zz)=>{const p=B(x,yy,zz,6,.3,6,{mat:'lisse',color:i?'#9aa4b2':'#3d7eff',cp:i});G.cps[i]=p;SIGN(x,yy+3.4,zz-2.8,i===0?'OBBY ARC-EN-CIEL\n14 étapes':'ÉTAPE '+i,false,{size:i?60:40});return p};
+    const cp=(i,x,yy,zz)=>{const p=B(x,yy,zz,6,.3,6,{mat:'lisse',color:i?'#9aa4b2':'#3d7eff',cp:i});G.cps[i]=p;SIGN(x,yy+3.4,zz-2.8,i===0?'OBBY ARC-EN-CIEL\n30 étapes':'ÉTAPE '+i,false,{size:i?60:40});return p};
     SPAWN=cp(0,0,0,0);
     const plat=(x,yy,zz,sx,sz,i,o={})=>B(x,yy,zz,sx,.8,sz,{mat:'lisse',color:col(i),...o});
     // 1 sauts
@@ -291,13 +291,43 @@ GAMES.obby={name:'Obby Arc-en-ciel',genre:'Obby',icon:'🌈',colors:['#ff4fa3','
     let x=0;for(let k=0;k<5;k++){const nx=k%2?2.5:-2.5;B((x+nx)/2,y,z-3-k*3,Math.abs(nx-x)+.8,.6,.8,{mat:'lisse',color:col(12)});B(nx,y,z-4.5-k*3,.8,.6,3,{mat:'lisse',color:col(12)});x=nx}z-=21;cp(12,0,y,z);
     // 13 ascenseurs
     for(let k=0;k<3;k++)plat(k%2?2:-2,y+1.5+k*2.6,z-5-k*4,3,3,13,{move:{axis:[0,1,0],amp:1.5,speed:1.3+k*.2}});y+=8;z-=19;cp(13,0,y,z);
-    // 14 marches piégées puis arrivée
-    for(let k=0;k<5;k++){plat(0,y+k*1.2,z-4-k*3,3,2,14);B(0,y+k*1.2+.5,z-4-k*3+.9,3,.2,.2,{kind:'lava'})}y+=6;z-=21;
+    // 14 marches piégées
+    for(let k=0;k<5;k++){plat(0,y+k*1.2,z-4-k*3,3,2,14);B(0,y+k*1.2+.5,z-4-k*3+.9,3,.2,.2,{kind:'lava'})}y+=6;z-=21;cp(14,0,y,z);
+    // 15 double barre tournante
+    plat(0,y,z-9,12,12,15);killers.push({type:'spin',c:[0,y+.9,z-9],len:5.6,speed:1.6,ang:0});killers.push({type:'spin',c:[0,y+.9,z-9],len:5.6,speed:1.6,ang:Math.PI/2});z-=19;cp(15,0,y,z);
+    // 16 poutres au-dessus de la lave
+    B(0,y-.6,z-11,12,.3,18,{kind:'lava'});for(let k=0;k<4;k++){B(k%2?2:-2,y,z-5-k*4,.7,.6,3.4,{mat:'lisse',color:col(16)})}z-=23;cp(16,0,y,z);
+    // 17 murs qui poussent
+    plat(0,y,z-10,8,16,17);for(let k=0;k<3;k++)B(0,y+1.6,z-5-k*5,3,2.4,1,{mat:'lisse',color:'#30343d',move:{axis:[1,0,0],amp:3.6,speed:1.4+k*.3}});z-=20;cp(17,0,y,z);
+    // 18 damier de lave
+    for(let i=0;i<5;i++)for(let j=0;j<3;j++){const lava=(i+j)%2===1;B((j-1)*2.4,y,z-5-i*2.4,2.3,.8,2.3,lava?{kind:'lava'}:{mat:'lisse',color:col(18)})}z-=19;cp(18,0,y,z);
+    // 19 tour à grimper (treillis puis échelle)
+    B(0,y+6,z-6,2,12,2,{mat:'metal',mode:5,climb:'metal',wrap:true,color:'#e3e8ef'});plat(0,y+12,z-9,4,4,19);B(0,y+17,z-12,6,10,2,{mat:'brique'});B(0,y+17,z-10.85,2,10,.3,{mat:'bois',mode:4,climb:'wood'});y+=22;B(0,y-.25,z-14,4,.5,4,{mat:'brique'});z-=19;cp(19,0,y,z);
+    // 20 labyrinthe de tapis
+    B(-2,y,z-6,2.2,.8,8,{kind:'conv',dir:[0,0,1],speed:3,mode:6,color:'#3a3f4b'});B(1,y,z-10,8,.8,2.2,{kind:'conv',dir:[-1,0,0],speed:3,mode:6,color:'#3a3f4b'});B(4,y,z-14,2.2,.8,8,{kind:'conv',dir:[0,0,1],speed:3.5,mode:6,color:'#3a3f4b'});z-=24;cp(20,0,y,z);
+    // 21 chaîne de trampolines
+    for(let k=0;k<3;k++){B(k%2?2:-2,y,z-5-k*7,2.6,.5,2.6,{kind:'bounce',color:'#ff4fa3'})}y+=3;plat(0,y,z-26,4,4,21);z-=31;cp(21,0,y,z);
+    // 22 plateformes mobiles qui disparaissent
+    for(let k=0;k<4;k++){const p=plat(0,y,z-5-k*4.2,2.6,2.6,22,{fade:1,move:{axis:[1,0,0],amp:2.5,speed:1.1+k*.2}});G.fades.push(p)}z-=23;cp(22,0,y,z);
+    // 23 petits plots
+    for(let k=0;k<7;k++)plat(Math.sin(k*1.7)*2.5,y+(k%3)*.6,z-4-k*2.8,1.1,1.1,23);z-=26;cp(23,0,y,z);
+    // 24 croix tournante
+    plat(0,y,z-10,14,14,24);for(let a=0;a<4;a++)killers.push({type:'spin',c:[0,y+.9,z-10],len:6.6,speed:-1.2,ang:a*Math.PI/2});z-=21;cp(24,0,y,z);
+    // 25 pont de verre long
+    for(let r=0;r<7;r++){const fake=Math.random()<.5?0:1;for(let s=0;s<2;s++){const p=B(s?1.6:-1.6,y,z-5-r*3.2,2.6,.3,2.6,{mat:'verre',color:'#bfe9ff',fake:s===fake});if(s===fake)G.fakes.push(p)}}z-=29;cp(25,0,y,z);
+    // 26 toboggan de glace
+    for(let k=0;k<6;k++)B(0,y-k*.6,z-5-k*3,3.4,.6,3.2,{mat:'glace'});y-=3.6;plat(0,y,z-25,5,5,26);z-=29;cp(26,0,y,z);
+    // 27 ascenseurs en tour
+    for(let k=0;k<4;k++)plat(k%2?2.4:-2.4,y+1.5+k*2.8,z-5-k*3.6,3,3,27,{move:{axis:[0,1,0],amp:1.6,speed:1.1+k*.25}});y+=12;plat(0,y,z-21,4,4,27);z-=25;cp(27,0,y,z);
+    // 28 couloir de lasers
+    plat(0,y,z-10,4,18,28);for(let k=0;k<4;k++)B(0,y+.9+(k%2)*1.1,z-4-k*4,4,.25,.25,{kind:'lava',move:{axis:[0,1,0],amp:.7,speed:2+k*.4}});z-=21;cp(28,0,y,z);
+    // 29 le grand final
+    B(0,y-.6,z-16,14,.3,30,{kind:'lava'});for(let k=0;k<6;k++){const o=k%3===2?{fade:1}:k%3===1?{move:{axis:[1,0,0],amp:3,speed:1.5}}:{};const p=plat(k%2?2:-2,y+k*.5,z-5-k*4.6,2.4,2.4,29,o);if(o.fade)G.fades.push(p)}y+=3;z-=34;
     G.finish=B(0,y,z,7,.4,7,{mat:'or'});B(0,y+1.4,z-2.4,.7,2.4,.7,{mat:'or'});B(0,y+3,z-2.4,1.6,1,1.6,{mat:'or'});SIGN(0,y+5,z-3.6,'BRAVO !',false);
-    G.total=14;WORLD.voidY=-30;
+    G.total=30;WORLD.voidY=-40;
   },
   spawn(c){const p=this.cps[this.sv.stage]||this.cps[0];return[p.pos[0],p.pos[1]+.2,p.pos[2]]},
-  hud(el){el.innerHTML=`<div class="ghud center"><div class="gtitle" id="obSt">Étape 0 / 14</div><div class="gbar"><i id="obBar"></i></div><div class="gsub" id="obT">0:00.0</div></div>`},
+  hud(el){el.innerHTML=`<div class="ghud center"><div class="gtitle" id="obSt">Étape 0 / 30</div><div class="gbar"><i id="obBar"></i></div><div class="gsub" id="obT">0:00.0</div></div>`},
   update(dt,t){const G=this;
     if(!G.done&&pl.ground&&pl.ground.cp!=null){const i=pl.ground.cp;if(i>G.sv.stage){G.sv.stage=i;pl.ground.color='#2fbf71';SFX.checkpoint();toast(`Étape ${i} atteinte !`);sparks(V.add(pl.ground.pos,[0,.4,0]),[1,3,1.5],18);markDirty()}if(i>0&&!G.running){G.running=true}}
     if(pl.ground&&pl.ground.cp===0&&G.sv.stage===0){G.timer=0;G.running=false}
@@ -399,7 +429,7 @@ GAMES.rpg={name:'Royaume des Slimes',genre:'Aventure',icon:'⚔️',colors:['#7a
     B(4,1,-3,3,.2,2,{mat:'planches'});for(const[x,z]of[[2.7,-2.2],[5.3,-2.2],[2.7,-3.8],[5.3,-3.8]])B(x,.5,z,.2,1,.2,{mat:'bois'});B(4,2.2,-3,3.4,.15,2.4,{color:'#e5484d',mat:'tissu'});
     B(-3,.6,-1,1.8,1.2,1.8,{mat:'pierre'});B(-3,1.6,-1,.15,2,.15,{mat:'bois'});
     for(let i=0;i<6;i++){LOG(-16+i*6.4,.7,14,6,.35,'x');B(-16+i*6.4-3,.7,14,.4,1.4,.4,{mat:'bois'})}
-    SIGN(-5,3.4,1,'ROYAUME DES SLIMES',true,{size:44});SIGN(0,2.6,-12,'↑ Prairie · → Forêt · ↖ Arène',true,{size:32});
+    SIGN(-5,3.4,1,'ROYAUME DES SLIMES',true,{size:44});SIGN(0,2.6,-12,'↑ Prairie · → Forêt · ↖ Arène\n→→ Pics gelés · ↓ Désert',true,{size:30});
     // forêt
     for(let i=0;i<18;i++)TREE(32+rh(i)*30,-12-rh(i+5)*38,3+rh(i+9)*1.5,3);for(let i=0;i<6;i++)LOG(36+rh(i*2)*22,.45,-16-rh(i*3)*30,3.5,.9,i%2?'x':'z');
     // arène
@@ -474,7 +504,7 @@ GAMES.rpg={name:'Royaume des Slimes',genre:'Aventure',icon:'⚔️',colors:['#7a
       const r=.5*E.size;for(const p of solids){if(p.size[1]<.5)continue;const b=bnd(p);if(e.pos[1]>b.mx[1]||e.pos[1]+1.5*E.size<b.mn[1])continue;
         const cx=clamp(e.pos[0],b.mn[0],b.mx[0]),cz=clamp(e.pos[2],b.mn[2],b.mx[2]),dx=e.pos[0]-cx,dz=e.pos[2]-cz,dd=Math.hypot(dx,dz);if(dd<r&&dd>1e-4){e.pos[0]+=dx/dd*(r-dd);e.pos[2]+=dz/dd*(r-dd)}}}
     // invites d'interaction
-    const B_=$('rpB');B_.hidden=!boss;if(boss)$('rpBh').style.width=(boss.hp/boss.E.hp*100)+'%';
+    const B_=$('rpB');B_.hidden=!boss;if(boss){$('rpBh').style.width=(boss.hp/boss.E.hp*100)+'%';B_.querySelector('.bn').textContent=boss.E.name}
     $('rpL').textContent=sv.lvl;$('rpH').style.width=(G.hp/G.maxHp()*100)+'%';$('rpHt').textContent=`${Math.ceil(G.hp)} / ${G.maxHp()}`;$('rpX').style.width=(sv.xp/G.xpNext()*100)+'%';$('rpG').textContent=sv.gold;$('rpPn').textContent=sv.pot;
     const q=QUESTS[Math.min(sv.q,QUESTS.length-1)];$('rpQ').innerHTML='';const qt=document.createElement('div');qt.className='qt';qt.textContent='📜 '+(sv.qn>=q.n?'Retourne voir l\'Ancien !':q.txt);const qp=document.createElement('div');qp.className='qp';qp.textContent=`${Math.min(sv.qn,q.n)} / ${q.n}`;$('rpQ').append(qt,qp)},
   input(k){if(k==='attack')this.attack();if(k==='potion')this.drink()},
@@ -483,15 +513,39 @@ GAMES.rpg={name:'Royaume des Slimes',genre:'Aventure',icon:'⚔️',colors:['#7a
         L.push({mesh:MESH.rbox,m,mode:3,color:E.col,shin:140,emis:flash||.08,rim:.6});for(const sx of[-.2,.2]){L.push({mesh:MESH.sphere,m:M.mul(m,M.chain(M.T(sx,.15,.5),M.S(.16,.22,.06))),mode:3,color:'#15161b',shin:200})}}
       else{const base=M.chain(M.T(e.pos[0],e.pos[1],e.pos[2]),M.RY(e.yaw),M.S(s,s,s)),sw=Math.sin(t*8)*(V.len([e.vel[0],0,e.vel[2]])>.3?.6:0),atk=e.atk>0?-1.6:0;
         const part=(x,y,z,sx,sy,sz,c,rx=0,piv=null)=>{let m=piv?M.chain(base,M.T(...piv),M.RX(rx),M.T(x-piv[0],y-piv[1],z-piv[2])):M.mul(base,M.T(x,y,z));L.push({mesh:MESH.rbox,m:M.mul(m,M.S(sx,sy,sz)),mode:3,color:c,shin:30,emis:flash})};
-        const c=E.col,c2=e.type==='golem'?'#6d6a64':'#d8d1bf';
+        const c=E.col,c2=E.col2||(e.type==='golem'?'#6d6a64':'#d8d1bf');
         part(0,1.5,0,.9,1,.45,c);part(0,2.3,0,.6,.6,.6,c2);part(.65,1.5,0,.3,1,.3,c,sw+atk,[.65,1.95,0]);part(-.65,1.5,0,.3,1,.3,c,-sw+atk,[-.65,1.95,0]);part(.22,.5,0,.32,1,.32,c2,-sw,[.22,1,0]);part(-.22,.5,0,.32,1,.32,c2,sw,[-.22,1,0]);
-        for(const sx of[-.13,.13])L.push({mesh:MESH.box,m:M.mul(base,M.chain(M.T(sx,2.36,.3),M.S(.12,.1,.02))),mode:3,color:e.type==='golem'?'#39f0ff':'#15161b',emis:e.type==='golem'?(HDR?4:1):0})}
+        for(const sx of[-.13,.13])L.push({mesh:MESH.box,m:M.mul(base,M.chain(M.T(sx,2.36,.3),M.S(.12,.1,.02))),mode:3,color:E.eye||(e.type==='golem'?'#39f0ff':'#15161b'),emis:(E.eye||e.type==='golem')?(HDR?4:1):0})}
       if(e.slam&&!e.slam.done){const k=e.slam.t/.9;L.push({mesh:MESH.cyl,m:M.chain(M.T(e.slam.at[0],.05,e.slam.at[2]),M.S(9*k,.04,9*k)),mode:3,color:'#ff3030',emis:HDR?1.5:.5})}}
     // barres de vie au-dessus des ennemis (HTML)
     updEnemyBars(this.en)}
 };
 
 /* ---------- classement multijoueur (affiché dans la liste des joueurs de chacun) ---------- */
-GAMES.obby.lbLabel='Étape';GAMES.obby.lbValue=function(c){return c.isPlayer?(this.done?'🏁 '+fmtT(this.timer):(this.sv.stage||0)+'/14'):''};
+GAMES.obby.lbLabel='Étape';GAMES.obby.lbValue=function(c){return c.isPlayer?(this.done?'🏁 '+fmtT(this.timer):(this.sv.stage||0)+'/30'):''};
 GAMES.tycoon.lbLabel='Cash';GAMES.tycoon.lbValue=function(c){const v=Math.floor(this.sv.cash||0);return c.isPlayer?(v>=1e6?(v/1e6).toFixed(1)+' M':v>=1e3?(v/1e3).toFixed(1)+' k':String(v))+' $':''};
 GAMES.rpg.lbLabel='Niveau';GAMES.rpg.lbValue=function(c){return c.isPlayer?'Nv '+(this.sv.lvl||1):''};
+
+/* ---------- RPG : deux nouvelles régions, nouveaux ennemis et boss ---------- */
+Object.assign(ENEMY,{yeti:{name:'Yéti',hp:150,dmg:16,spd:4.2,range:2.1,aggro:13,xp:55,gold:[18,30],col:'#eef4fb',col2:'#b9c7d6',eye:'#39a8ff',size:1.3},
+  roi_yeti:{name:'Roi Yéti',hp:1400,dmg:34,spd:2.8,range:3,aggro:18,xp:700,gold:[300,360],col:'#dbe9f7',col2:'#8fb3d6',eye:'#39a8ff',size:2.7,boss:true},
+  momie:{name:'Momie',hp:110,dmg:14,spd:3.4,range:1.9,aggro:12,xp:42,gold:[14,24],col:'#d9c9a3',col2:'#bfae86',eye:'#ffd23f',size:1.05},
+  pharaon:{name:'Pharaon Doré',hp:1800,dmg:38,spd:2.6,range:3,aggro:18,xp:1000,gold:[450,520],col:'#e3b341',col2:'#3d7eff',eye:'#ff3030',size:2.8,boss:true}});
+SWORDS.push({name:'Épée de givre',dmg:28,col:'#bfe9ff',glow:1,price:900},{name:'Lame du Pharaon',dmg:45,col:'#ffd23f',glow:1,price:2200});
+QUESTS.splice(3,0,{txt:'Les Pics gelés (à l\'est) sont envahis de yétis. Élimine-en 6 !',type:'yeti',n:6,gold:150,blox:60},{txt:'Affronte le Roi Yéti au sommet des Pics gelés.',type:'roi_yeti',n:1,gold:500,blox:250},
+  {txt:'Des momies se réveillent dans le Désert (au sud). Élimine-en 6 !',type:'momie',n:6,gold:220,blox:80},{txt:'Le Pharaon Doré t\'attend dans sa pyramide. Vaincs-le !',type:'pharaon',n:1,gold:800,blox:350});
+GAMES.rpg.desc="Un grand RPG d'action en groupe : prairie, forêt, arène du Golem, Pics gelés du Roi Yéti et Désert du Pharaon. 8 quêtes, 5 épées, bonus d'XP quand tu joues avec tes amis.";
+{const base=GAMES.rpg.build;GAMES.rpg.build=function(sv){base.call(this,sv);const G=this;
+  // Pics gelés (est)
+  B(125,-.5,-10,90,1,120,{mat:'neige'});B(70,.03,-10,24,.06,4,{mat:'gravier',nocol:1});SIGN(78,3,-6,'→ PICS GELÉS',true,{size:40});
+  for(let i=0;i<22;i++){const x=95+rh(i*7)*55,z=-60+rh(i*11)*95;if(Math.hypot(x-140,z+45)<14)continue;LOG(x,1.6,z,3.2,.7,'y');B(x,3.8,z,2.6,2,2.6,{mat:'neige'});B(x,5.2,z,1.6,1.4,1.6,{mat:'neige'})}
+  for(let i=0;i<6;i++)B(100+rh(i*3)*40,.2,-30+rh(i*5)*50,6+rh(i)*5,.4,5,{mat:'glace'});
+  B(140,1,-45,24,2,24,{mat:'glace'});for(const[x,z]of[[129,-34],[151,-34],[129,-56],[151,-56]])B(x,4,z,2,6,2,{mat:'glace'});SIGN(140,5,-31.5,'TRÔNE DU ROI YÉTI',false,{size:40});
+  for(let i=0;i<7;i++)G.addEnemy('yeti',[rnd(100,140),0,rnd(-20,25)]);G.addEnemy('roi_yeti',[140,2.1,-46]);
+  // Désert des momies (sud)
+  B(0,-.5,110,140,1,80,{mat:'sable'});B(0,.03,72,4,.06,24,{mat:'gravier',nocol:1});SIGN(-4,3,64,'↓ DÉSERT',true,{size:40});
+  for(let i=0;i<14;i++){const x=-60+rh(i*13)*120,z=80+rh(i*17)*55;if(Math.abs(x)<18&&z>110)continue;B(x,1.4,z,.7,2.8,.7,{color:'#2f8f3b',mat:'lisse'});B(x+.6,1.8,z,.6,.3,.3,{color:'#2f8f3b',mat:'lisse'});B(x+.85,2.2,z,.3,.8,.3,{color:'#2f8f3b',mat:'lisse'})}
+  for(let k=0;k<7;k++){const w=30-k*4;B(0,.75+k*1.5,128,w,1.5,w,{mat:'sable',color:'#e2c27a'})}B(0,1.5,113.9,4,3,.4,{color:'#1f1a14',mat:'lisse',nocol:1});
+  B(0,.1,100,18,.2,18,{mat:'gres'in MATS?'gres':'pierre',color:'#c9a45a'});for(const[x,z]of[[-8,92],[8,92],[-8,108],[8,108]])B(x,3,z,1.4,6,1.4,{mat:'marbre',color:'#e2c27a'});
+  for(let i=0;i<7;i++)G.addEnemy('momie',[rnd(-40,40),0,rnd(78,98)]);G.addEnemy('pharaon',[0,.3,102]);
+  WORLD.voidY=-30}}

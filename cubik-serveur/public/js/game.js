@@ -238,6 +238,7 @@ function settingsPanel(B,onChange){const sw=(k,label,sub)=>el('div',{class:'set'
   B.append(el('h3',{text:'Commandes'}),rng('sens','Sensibilité caméra',.3,2.5,.1,v=>(+v).toFixed(1)+'×'),sw('invY','Inverser l\'axe vertical'),sw('autoJump','Saut automatique','Saute tout seul devant les obstacles'));
   B.append(el('h3',{text:'Affichage'}),sw('bubbles','Bulles de discussion'),sw('hit','Afficher la hitbox','Touche H'),sw('info','Infos (FPS, état)'))}
 function renderGMenu(){document.querySelectorAll('#gmenu .tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===gTab));const B=$('gBody');B.innerHTML='';
+  if(gTab==='amis'){gFriendsTab(B);return}
   if(gTab==='joueurs'){B.append(el('h3',{text:`Dans ce serveur · ${chars.filter(c=>!c.left&&!(c.ai&&!c.remote)).length} joueur(s)${MP.room?' · serveur '+MP.server:' · hors ligne'}`}));
     for(const c of chars){if(c.left||(c.ai&&!c.remote))continue;const d=c.isPlayer?null:Math.round(V.len(V.sub(c.pos,pl.pos)));const img=el('img',{class:'ava',alt:''});img.src=headThumb(c.av);
       const row=el('div',{class:'prow'},img,el('div',{class:'nm'},c.name,c.isPlayer?el('span',{class:'you',text:'toi'}):null,el('small',{text:c.isPlayer?ACC.pseudo:`${blocked.has(c.name)?'Bloqué · ':''}à ${d} m`})));

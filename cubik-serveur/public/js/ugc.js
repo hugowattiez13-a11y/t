@@ -6,9 +6,9 @@
 /* ---------- objets UGC ---------- */
 const UGC_KIND={haut:['👕','T-shirt / haut'],bas:['👖','Pantalon / bas'],visage:['🙂','Visage']};
 function ugcItemId(m){return m.cat==='visage'?'ugcf_'+m.id:'ugc_'+m.id}
-function ugcRegister(m){const id=ugcItemId(m);const base={cat:m.cat,id,name:m.name,price:0,rarity:'Création',ugc:true,by:ACC?.pseudo};
+function ugcRegister(m,foreign){const id=ugcItemId(m);const base={cat:m.cat,id,name:m.name,price:0,rarity:'Création',ugc:true,by:foreign?String(foreign):ACC?.pseudo,foreign:!!foreign};
   if(m.cat==='haut')Object.assign(base,{c:m.c,c2:m.c2,pat:'ugc',sleeve:m.sleeve||'short'});if(m.cat==='bas')Object.assign(base,{c:m.c,c2:m.c2,pat:'ugc',shoes:m.shoes||'#f2f2f2'});
-  const old=IT[id];if(old){Object.assign(old,base)}else{CATALOG.push(base);IT[id]=base}if(ACC&&!ACC.owned.includes(id))ACC.owned.push(id);ugcInvalidate(id);return IT[id]}
+  const old=IT[id];if(old){Object.assign(old,base)}else{if(!foreign)CATALOG.push(base);IT[id]=base}if(!foreign&&ACC&&!ACC.owned.includes(id))ACC.owned.push(id);ugcInvalidate(id);return IT[id]}
 function ugcSetImages(id,front,back){const load=(k,src)=>{if(!src){delete UGC_IMG[k];return}const im=new Image();im.onload=()=>ugcInvalidate(id);im.src=src;UGC_IMG[k]=im};load(id,front);load(id+'_b',back)}
 function ugcInvalidate(id){for(const[k,v]of[...AVTEX_CACHE])if(k.includes(id)){for(const t of Object.values(v))gl.deleteTexture(t);AVTEX_CACHE.delete(k)}for(const k of[...THUMB.cache.keys()])if(k.includes(id))THUMB.cache.delete(k)}
 async function ugcLoadAll(){ACC.ugc=ACC.ugc||[];ACC.creations=ACC.creations||[];for(const m of ACC.ugc){ugcRegister(m);Store.getDoc('ugc_'+m.id).then(d=>{if(d)ugcSetImages(ugcItemId(m),d.front,d.back)}).catch(()=>{})}}
@@ -205,11 +205,22 @@ function importGameModal(){const ta=el('textarea',{placeholder:'Colle ici le cod
   ta.addEventListener('input',()=>{info.textContent=ta.value.trim()?`${(ta.value.trim().length/1024).toFixed(1)} Ko collés`:''});setTimeout(()=>ta.focus(),60)}
 
 /* ---------- accessoires venus du Hub ---------- */
-function hubAccRegister(a){if(!a||a.type!=='mesh'||!a.slot||a.slot==='objet'||!SLOT_AT[a.slot])return null;const cat=a.slot==='visage'?'lunettes':a.slot,id='hacc_'+a.id.slice(4);
-  const it={cat,id,name:a.name,price:0,rarity:'Hub',ugc:true,by:a.author,at:SLOT_AT[a.slot],parts:a.parts.map(p=>PT(p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7],{emis:p[8]}))};if(IT[id])Object.assign(IT[id],it);else{CATALOG.push(it);IT[id]=it}
-  if(ACC&&!ACC.owned.includes(id))ACC.owned.push(id);for(const k of[...THUMB.cache.keys()])if(k.includes(id))THUMB.cache.delete(k);return it}
+function hubAccRegister(a,foreign){if(!a||a.type!=='mesh'||!a.slot||a.slot==='objet'||!SLOT_AT[a.slot])return null;const cat=a.slot==='visage'?'lunettes':a.slot,id='hacc_'+a.id.slice(4);
+  const it={cat,id,name:a.name,price:0,rarity:'Hub',ugc:true,by:a.author,at:SLOT_AT[a.slot],parts:a.parts.slice(0,64).map(p=>PT(p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7],{emis:p[8]})),foreign:!!foreign,asset:a};if(IT[id])Object.assign(IT[id],it);else{if(!foreign)CATALOG.push(it);IT[id]=it}
+  if(!foreign&&ACC&&!ACC.owned.includes(id))ACC.owned.push(id);for(const[k,v]of[...AVTEX_CACHE])if(k.includes(id)){for(const t of Object.values(v))gl.deleteTexture(t);AVTEX_CACHE.delete(k)}for(const k of[...THUMB.cache.keys()])if(k.includes(id))THUMB.cache.delete(k);return it}
 async function hubAccLoad(){ACC.hubAcc=ACC.hubAcc||[];await loadAssetDocs(ACC.hubAcc);for(const id of ACC.hubAcc)hubAccRegister(ASSETS.get(id))}
 function importHubAcc(){const ta=el('textarea',{placeholder:'Colle le code CUBIK-ASSET… d\'un accessoire du Hub',style:'height:110px;font:11px ui-monospace,monospace'});ta.onkeydown=e=>e.stopPropagation();const err=el('div',{class:'aerr'});
   const m=modal(el('div',{class:'cf'},el('h2',{text:'📥 Importer un accessoire'}),ta,err,el('div',{class:'ibtns'},el('button',{class:'btn',text:'Annuler',onclick:()=>m.remove()}),el('button',{class:'btn green',text:'Ajouter',onclick:async()=>{try{const L=await decodeAssets(ta.value);let n=0;
     for(const a of L){const it=hubAccRegister(a);if(!it)continue;await saveAssetDoc(a);if(!ACC.hubAcc.includes(a.id))ACC.hubAcc.push(a.id);ACC.avatar[it.cat]=it.id;n++}
     if(!n)throw new Error('Ce code n\'est pas un accessoire (choisis un mesh « accessoire » dans le Hub)');markDirty();m.remove();toast(`${n} accessoire(s) ajouté(s) et porté(s) ✓`);go('create')}catch(e){err.textContent=e.message}}}))))}
+
+/* ---------- objets créés par les joueurs visibles par TOUS (multijoueur) ---------- */
+const PUB_RE=/^(ugc_|ugcf_|hacc_)[A-Za-z0-9_-]{3,40}$/,PUB_DONE=new Set(),PUB_REQ=new Set();
+async function publishWornItems(){if(!Cloud.shared()||!ACC)return;for(const k of AV_KEYS){const id=ACC.avatar[k];if(!id||!PUB_RE.test(id)||PUB_DONE.has(id)||!IT[id]||IT[id].foreign)continue;PUB_DONE.add(id);const it=IT[id];
+  try{let d=null;if(id.startsWith('hacc_')){const a=it.asset||ASSETS.get('msh_'+id.slice(5));if(a)d={k:'acc',a:{id:a.id,type:'mesh',slot:a.slot,name:String(a.name||'').slice(0,40),author:a.author||ACC.pseudo,parts:(a.parts||[]).slice(0,64)}}}
+    else{const m=(ACC.ugc||[]).find(x=>ugcItemId(x)===id);if(m){const img=await Store.getDoc('ugc_'+m.id).catch(()=>null);d={k:'ugc',m:{id:m.id,cat:m.cat,name:String(m.name||'').slice(0,40),c:m.c,c2:m.c2,sleeve:m.sleeve,shoes:m.shoes},front:img?.front||null,back:img?.back||null}}}
+    if(d){d.by=ACC.pseudo;d.t=Date.now();await Cloud.doc('pitems/'+id).set(d)}}catch(e){PUB_DONE.delete(id);console.warn('publication objet',e)}}}
+function requestPubItem(id){if(PUB_REQ.has(id)||!Cloud.shared())return;PUB_REQ.add(id);Cloud.doc('pitems/'+id).get().then(d=>{if(!d)return;const by=filterText(String(d.by||'?')).slice(0,20);
+    if(d.k==='acc'&&d.a&&Array.isArray(d.a.parts)&&'hacc_'+String(d.a.id).slice(4)===id)hubAccRegister({...d.a,author:by},by);
+    else if(d.k==='ugc'&&d.m&&ugcItemId(d.m)===id&&['haut','bas','visage'].includes(d.m.cat)){const okImg=v=>typeof v==='string'&&v.startsWith('data:image/')&&v.length<400000?v:null;const m={...d.m,name:filterText(String(d.m.name||'Création'))};ugcRegister(m,by);ugcSetImages(id,okImg(d.front),okImg(d.back))}
+    for(const c of MP.remote.values())c.avKey=null}).catch(()=>{setTimeout(()=>PUB_REQ.delete(id),20000)})}

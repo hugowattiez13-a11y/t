@@ -41,13 +41,16 @@ function frLists(){ACC.friends=ACC.friends||[];ACC.friendOut=ACC.friendOut||[];A
 function lobbyPeerOf(id){return Lobby.peers.find(p=>!p.isMe&&p.presence?.id===id)}
 function friendState(f){const p=lobbyPeerOf(f.id);if(!p)return{on:false,txt:'Hors ligne'};const w=String(p.presence.where||'menu');if(w==='menu')return{on:true,txt:'Dans le menu',p};const[,g,s]=w.split(':');
   const name=g.startsWith('c-')?'une création':(GAMES[g]?.name||g);return{on:true,txt:`Joue à ${name}${s?.startsWith('p')?' (serveur privé)':' · serveur '+s}`,p,g,s}}
-function lobbyExtra(){frLists();const fr=[...ACC.friends,...ACC.friendOut].map(f=>f.id).slice(0,80);return{id:myFid(),fr,av:compactAv(ACC.avatar),priv:MP.priv||null,dm:FR.dmOut||null}}
+function lobbyExtra(){frLists();publishWornItems();const fr=[...ACC.friends,...ACC.friendOut].map(f=>f.id).slice(0,80);return{id:myFid(),fr,av:compactAv(ACC.avatar),priv:MP.priv||null,dm:FR.dmOut||null}}
 function socialTick(){if(!ACC||!Lobby.room)return;frLists();let ch=false;
   for(const p of Lobby.peers){if(p.isMe)continue;const pr=p.presence||{},id=pr.id;if(!id)continue;const theirs=Array.isArray(pr.fr)?pr.fr:[];
     // demande acceptée de l'autre côté → ami
     const out=ACC.friendOut.find(f=>f.id===id);if(out&&theirs.includes(myFid())){ACC.friendOut=ACC.friendOut.filter(f=>f!==out);if(!ACC.friends.some(f=>f.id===id))ACC.friends.push({id,n:String(pr.n||out.n)});toast(`🤝 ${filterText(pr.n)} a accepté ta demande d'ami !`);SFX.quest();ch=true}
     // message privé reçu
     const dm=pr.dm;if(dm&&dm.to===myFid()&&dm.i&&FR['seen_'+id]!==dm.i){const first=FR['seen_'+id]===undefined;FR['seen_'+id]=dm.i;if(!first||Date.now()-(dm.t||0)<20000)receiveDm(id,String(pr.n||'?'),String(dm.x||''),dm.t)}}
+  // notifications : ami connecté / lance un jeu
+  const now=new Map();for(const f of ACC.friends){const st=friendState(f);if(st.on)now.set(f.id,st.g||'menu')}
+  if(FR.onl){for(const[id,w]of now){const f=ACC.friends.find(x=>x.id===id),was=FR.onl.get(id);if(was===undefined){toast(`🟢 ${filterText(f.n)} vient de se connecter`);SFX.emoji()}else if(w!==was&&w!=='menu'&&GAMES[w]&&SET.frNotif!==false)toast(`🎮 ${filterText(f.n)} joue à ${GAMES[w].name}`)}}FR.onl=now;
   if(ch){markDirty();Lobby.set(Lobby.where)}updFriendBadge()}
 function incomingRequests(){frLists();return Lobby.peers.filter(p=>!p.isMe&&p.presence?.id&&(p.presence.fr||[]).includes(myFid())&&!ACC.friends.some(f=>f.id===p.presence.id)&&!(ACC.blockedF||[]).includes(p.presence.id))}
 function addFriend(id,n){frLists();if(!id||id===myFid()||ACC.friends.some(f=>f.id===id))return;const inc=incomingRequests().some(p=>p.presence.id===id);if(inc){ACC.friends.push({id,n});toast(`🤝 ${filterText(n)} est maintenant ton ami !`)}
@@ -58,17 +61,24 @@ const dmQueue=[];let dmT=null;
 function sendDm(id,text){text=filterText(String(text).trim()).slice(0,200);if(!text)return;frLists();(ACC.dms[id]=ACC.dms[id]||[]).push({me:1,x:text,t:Date.now()});ACC.dms[id]=ACC.dms[id].slice(-60);markDirty();
   dmQueue.push({to:id,x:text});pumpDm();if(Cloud.shared()){const mid=Date.now().toString(36)+Math.random().toString(36).slice(2,6);Cloud.doc(`inbox/${id}/m/${mid}`).set({from:myFid(),n:ACC.pseudo,x:text,t:Date.now()}).catch(()=>{})}}
 function pumpDm(){if(dmT||!dmQueue.length)return;const m=dmQueue.shift();FR.dmOut={to:m.to,x:m.x,i:Date.now().toString(36)+Math.random().toString(36).slice(2,4),t:Date.now()};Lobby.set(Lobby.where);dmT=setTimeout(()=>{dmT=null;pumpDm()},1600)}
+const INV_RE=/^⟦inv:([a-z0-9_-]{1,24}):([a-z0-9]{1,16})⟧$/i;
+function inviteFriend(f){if(MODE!=='game'||!MP.game||!GAMES[MP.game]){toast('Lance un jeu pour inviter tes amis');return}
+  if(MP.priv&&MP.priv.o===myFid()&&!MP.priv.a.includes(f.id)){MP.priv.a.push(f.id);Lobby.set(Lobby.where)}
+  sendDm(f.id,`⟦inv:${MP.game}:${MP.server}⟧`);toast(`📨 Invitation envoyée à ${filterText(f.n)}`);if(DMW.id===f.id)drawDm()}
+function joinInvite(g,s){if(!GAMES[g]){toast('Jeu introuvable');return}if(String(s).startsWith('p')&&!privAllowed(g,s)){toast('Ce serveur privé n\'est plus ouvert');return}
+  if(MODE==='game'){if(MP.game===g&&MP.server===s){toast('Tu es déjà sur ce serveur');return}exitGame()}document.querySelectorAll('.modal').forEach(m=>m.remove());$('dmWin')&&($('dmWin').style.display='none');startGame(g,s)}
+function dmText(x){const m=INV_RE.exec(x);return m?`🎮 Invitation : ${GAMES[m[1]]?.name||m[1]}`:x}
 function receiveDm(id,n,x,t){frLists();if(!ACC.friends.some(f=>f.id===id))return;const L=ACC.dms[id]=ACC.dms[id]||[];if(L.some(m=>!m.me&&m.x===x&&Math.abs((m.t||0)-(t||0))<3000))return;
-  L.push({me:0,x:filterText(x).slice(0,200),t:t||Date.now()});ACC.dms[id]=L.slice(-60);markDirty();if(DMW.id===id)drawDm();else{FR.unread++;toast(`💬 ${filterText(n)} : ${filterText(x).slice(0,60)}`);SFX.emoji()}updFriendBadge()}
+  L.push({me:0,x:filterText(x).slice(0,200),t:t||Date.now()});ACC.dms[id]=L.slice(-60);markDirty();if(DMW.id===id)drawDm();else{FR.unread++;const iv=INV_RE.exec(x);toast(iv?`🎮 ${filterText(n)} t'invite à jouer à ${GAMES[iv[1]]?.name||'un jeu'} ! (ouvre ses messages)`:`💬 ${filterText(n)} : ${filterText(x).slice(0,60)}`);SFX.emoji()}updFriendBadge()}
 async function startInbox(){if(!Cloud.shared()||FR.inboxUnsub)return;const me=myFid();FR.inboxUnsub=Cloud.watch(`inbox/${me}/m`,ch=>{for(const c of ch){if(!c.data)continue;const d=c.data;receiveDm(String(d.from),String(d.n||'?'),String(d.x||''),d.t);Cloud.doc(`inbox/${me}/m/${c.id}`).delete().catch(()=>{})}})}
 function updFriendBadge(){const n=incomingRequests().length+FR.unread;document.querySelectorAll('.nb[data-p=friends] .nbadge,.bb[data-p=friends] .nbadge').forEach(b=>{b.textContent=n||'';b.style.display=n?'':'none'})}
 // fenêtre de discussion privée (menu et jeu)
 const DMW={id:null};
 function openDm(f){DMW.id=f.id;DMW.n=f.n;FR.unread=0;updFriendBadge();let w=$('dmWin');if(!w){w=el('div',{id:'dmWin'});document.body.append(w)}w.style.display='flex';drawDm()}
 function drawDm(){const w=$('dmWin');if(!w||!DMW.id)return;frLists();const L=ACC.dms[DMW.id]||[],st=friendState({id:DMW.id});w.innerHTML='';const log=el('div',{class:'dmlog'});
-  for(const m of L)log.append(el('div',{class:'dmm '+(m.me?'me':'them'),text:m.x}));if(!L.length)log.append(el('div',{class:'note',text:'Écris ton premier message ! (les messages sont filtrés)'}));
+  for(const m of L){const iv=INV_RE.exec(m.x);if(iv){const g=GAMES[iv[1]];log.append(el('div',{class:'dmm inv '+(m.me?'me':'them')},el('b',{text:`🎮 ${m.me?'Tu as invité ton ami':'Invitation'} : ${g?.icon||''} ${g?.name||iv[1]}`}),el('small',{text:` serveur ${iv[2].startsWith('p')?'privé':iv[2]}`}),!m.me&&Date.now()-(m.t||0)<36e5?el('button',{class:'btn sm green',text:'Rejoindre',onclick:()=>joinInvite(iv[1],iv[2])}):null))}else log.append(el('div',{class:'dmm '+(m.me?'me':'them'),text:m.x}))}if(!L.length)log.append(el('div',{class:'note',text:'Écris ton premier message ! (les messages sont filtrés)'}));
   const inp=el('input',{type:'text',maxlength:'200',placeholder:'Message privé…'});inp.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter'){sendDm(DMW.id,inp.value);inp.value='';drawDm();setTimeout(()=>$('dmWin')?.querySelector('input')?.focus(),0)}if(e.key==='Escape')w.style.display='none'};
-  w.append(el('div',{class:'dmh'},el('span',{class:'dot'+(st.on?' on':'')}),el('b',{text:filterText(DMW.n)}),el('small',{text:st.txt}),el('button',{class:'mx',text:'✕',onclick:()=>{w.style.display='none';DMW.id=null}})),log,el('div',{class:'dmf'},inp,el('button',{class:'btn sm green',text:'➤',onclick:()=>{sendDm(DMW.id,inp.value);inp.value='';drawDm()}})));
+  w.append(el('div',{class:'dmh'},el('span',{class:'dot'+(st.on?' on':'')}),el('b',{text:filterText(DMW.n)}),el('small',{text:st.txt}),MODE==='game'&&MP.game?el('button',{class:'btn sm gold',text:'📨 Inviter',title:'Inviter dans mon serveur',onclick:()=>inviteFriend({id:DMW.id,n:DMW.n})}):null,st.g?el('button',{class:'btn sm green',text:'Rejoindre',onclick:()=>joinFriend({id:DMW.id,n:DMW.n})}):null,el('button',{class:'mx',text:'✕',onclick:()=>{w.style.display='none';DMW.id=null}})),log,el('div',{class:'dmf'},inp,el('button',{class:'btn sm green',text:'➤',onclick:()=>{sendDm(DMW.id,inp.value);inp.value='';drawDm()}})));
   log.scrollTop=log.scrollHeight;setTimeout(()=>inp.focus(),30)}
 function joinFriend(f){const st=friendState(f);if(!st.g){toast('Ton ami n\'est pas en jeu');return}if(st.s.startsWith('p')&&!privAllowed(st.g,st.s)){toast('Serveur privé : tu n\'es pas sur sa liste');return}
   if(st.g.startsWith('c-')){const c=(ACC.creations||[]).find(x=>('c-'+x.id.slice(-12))===st.g);if(!c){toast('Ton ami joue à une création que tu n\'as pas');return}document.querySelectorAll('.modal').forEach(m=>m.remove());playCreation(c.id,st.s);return}
@@ -94,7 +104,7 @@ function frRow(n,av,sub,b1,b2,b3,on){const im=el('img',{alt:''});im.src=headThum
 function serverList(id,close){if(!Cloud.online())return el('div',{class:'note',text:'Mode solo : le multijoueur fonctionne quand Cubik est partagé avec tes amis (ou sur un serveur Cubik).'});
   const box=el('div',{class:'srvs'}),max=maxFor(id);const draw=()=>{box.innerHTML='';const m=Lobby.servers(id);const pub=[...new Set(['1',...[...m.keys()].filter(s=>!s.startsWith('p'))])].sort((a,b)=>a-b),priv=[...m.keys()].filter(s=>s.startsWith('p'));
     box.append(el('div',{class:'srvh',text:`Serveurs publics · ${Lobby.count('game:'+id+':')} joueur(s) en ligne`}));
-    for(const s of pub){const n=m.get(s)||0;box.append(el('div',{class:'srv'},el('span',{text:`🌐 Serveur ${s}`}),el('span',{class:'srvn',text:`${n}/${max}`}),el('button',{class:'btn sm',text:n>=max?'Plein':'Rejoindre',disabled:n>=max?'':null,onclick:()=>{close();startGame(id,s)}})))}
+    for(const s of pub){const n=m.get(s)||0;box.append(el('div',{class:'srv'},el('span',{text:`🌐 Serveur ${s}`}),el('span',{class:'srvn',text:`${n}/${max}`+(n>=softFor(id)&&n<max?' · presque plein':'')}),el('button',{class:'btn sm',text:n>=max?'Plein':'Rejoindre',disabled:n>=max?'':null,onclick:()=>{close();startGame(id,s)}})))}
     const vis=priv.filter(s=>privAllowed(id,s));if(vis.length){box.append(el('div',{class:'srvh',text:'Serveurs privés où tu es invité'}));for(const s of vis){const o=privOwner(id,s);box.append(el('div',{class:'srv'},el('span',{text:`🔒 Serveur de ${filterText(o.presence.n)}`}),el('span',{class:'srvn',text:`${m.get(s)||0}/${max}`}),el('button',{class:'btn sm',text:'Rejoindre',onclick:()=>{close();startGame(id,s)}})))}}
     const nx=String(Math.max(0,...pub.map(Number))+1);box.append(el('div',{class:'ibtns'},el('button',{class:'btn sm',text:'＋ Nouveau serveur public',onclick:()=>{close();startGame(id,nx)}}),el('button',{class:'btn sm gold',text:'🔒 Serveur privé',onclick:()=>{close();privateServerModal(id)}})))};
   draw();Lobby.fns.add(draw);setTimeout(()=>{const o=new MutationObserver(()=>{if(!box.isConnected){Lobby.fns.delete(draw);o.disconnect()}});o.observe(document.body,{childList:true})},0);return box}
@@ -132,3 +142,13 @@ function voiceStep(dt){if(!VOICE.spk.size||!pl)return;const f=[Math.sin(cam.yaw+
     sp.pan.pan.setTargetAtTime(L>.1?clamp(V.dot(V.mul(d,1/L),r),-1,1)*.8:0,AU.ctx.currentTime,.08)}}
 addEventListener('keydown',e=>{if(e.code==='KeyV'&&MODE==='game'&&VOICE.on&&!/INPUT|TEXTAREA/.test(e.target.tagName)){VOICE.ptt=true;VOICE.open=false;updMic()}});
 addEventListener('keyup',e=>{if(e.code==='KeyV')VOICE.ptt=false});
+
+/* ---------- onglet « Amis » dans le menu en jeu ---------- */
+function gFriendsTab(B){frLists();const fl=ACC.friends.map(f=>({f,st:friendState(f)})).sort((a,b)=>b.st.on-a.st.on);const on=fl.filter(x=>x.st.on).length;
+  B.append(el('h3',{text:`Mes amis · ${on} en ligne sur ${fl.length}`}));if(!Cloud.online())B.append(el('div',{class:'note',text:'Les amis fonctionnent en ligne (version partagée ou serveur Cubik).'}));
+  if(!fl.length)B.append(el('div',{class:'note',text:'Pas encore d\'amis : ajoute les joueurs de ce serveur depuis l\'onglet Joueurs.'}));
+  for(const{f,st}of fl){const img=el('img',{class:'ava',alt:''});img.src=headThumb(expandAv(st.p?.presence?.av));const here=st.g===MP.game&&st.s===MP.server;
+    B.append(el('div',{class:'prow'},img,el('div',{class:'nm'},filterText(f.n),el('small',{text:(st.on?'🟢 ':'⚫ ')+(here?'Sur ton serveur':st.txt)})),
+      st.on&&!here?el('button',{class:'btn sm gold',text:'📨 Inviter',onclick:()=>inviteFriend(f)}):null,st.g&&!here?el('button',{class:'btn sm green',text:'Rejoindre',onclick:()=>{toggleGMenu(false);joinFriend(f)}}):null,
+      el('button',{class:'btn sm',text:'💬',onclick:()=>{toggleGMenu(false);openDm(f)}})))}
+  const inc=incomingRequests();if(inc.length){B.append(el('h3',{text:`Demandes reçues (${inc.length})`}));for(const p of inc)B.append(el('div',{class:'prow'},el('div',{class:'nm'},filterText(String(p.presence.n))),el('button',{class:'btn sm green',text:'Accepter',onclick:()=>{addFriend(p.presence.id,String(p.presence.n));renderGMenu()}})))}}

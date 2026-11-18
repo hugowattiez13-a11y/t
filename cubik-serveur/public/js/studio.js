@@ -147,7 +147,7 @@ const INSERTS=[
   ['coin','Pièce','🪙',{size:[1,1,.3]}],['npc','PNJ','🧑',{size:[2,2.65,1],text:'Bonjour !',av:'guide'}],['mover','Plateforme mobile','↔️',{size:[4,.6,4],color:'#4cc9f0',move:{axis:'X',amp:4,speed:1}}],
   ['light','Lumière','🔆',{size:[.8,.8,.8],color:'#ffd9a0',light:{range:16,bright:2.2,flicker:0}}],['emitter','Émetteur de particules','✨',{size:[1,1,1],color:'#ff8a3d',fx:'feu'}],
   ['soundblock','Bloc sonore','🔊',{size:[2,2,2],color:'#7a5cff',sfx:'bell',mode:'toucher'}],['zone','Zone déclencheur','🟪',{size:[6,4,6],color:'#b46bff',action:'message',text:'Tu es entré dans la zone !'}],
-  ['mesh','Mesh (Hub)','🧩',{size:[2,2,2],color:'#a3a2a5'}],['monster','Monstre','👹',{size:[2,2.65,1],text:'',av:'monstre',speed:7,aggro:22}],['key','Clé','🗝️',{size:[1,1,.3],color:'#ffd23f',text:'Clé'}],['door','Porte à clé','🚪',{size:[4,6,.5],color:'#5a3a24',text:'Clé'}]];
+  ['mesh','Mesh (Hub)','🧩',{size:[2,2,2],color:'#a3a2a5'}],['monster','Monstre','👹',{size:[2,2.65,1],text:'',av:'monstre',speed:7,aggro:22}],['key','Clé','🗝️',{size:[1,1,.3],color:'#ffd23f',text:'Clé'}],['door','Porte à clé','🚪',{size:[4,6,.5],color:'#5a3a24',text:'Clé'}],['objectif','Objectif d\'équipe','💎',{size:[1,1,1],color:'#39ffb6',text:'Sortie'}]];
 let OBJ_ID=1;
 function newObj(type,pos){const d=INSERTS.find(i=>i[0]===type);const o={id:'o'+(OBJ_ID++)+Math.random().toString(36).slice(2,5),type,name:d[1],pos:[...pos],size:[...d[3].size],color:d[3].color||'#a3a2a5',mat:d[3].mat||'plastique',collide:true,transp:0,script:''};
   for(const k of['shape','text','dir','speed','av','fx','sfx','mode','action','aggro'])if(d[3][k]!=null)o[k]=d[3][k];if(d[3].move)o.move={...d[3].move};if(d[3].light)o.light={...d[3].light};return o}
@@ -181,6 +181,7 @@ function buildObjects(objs,play){let spawn=null;WORLD.lights=[];WORLD.emitters=[
       case'mesh':{const a=ASSETS.get(o.mesh);WORLD.meshes.push({pos:[x,y,z],size:[sx,sy,sz],obj:o,asset:a});b=B(x,y,z,sx,sy,sz,{mat:'lisse',color:o.color});b.hidden=!!a;if(o.collide===false)b.nocol=true;break}
       case'monster':if(play){const c=spawnNPC(o.name||'Monstre',o.av||'monstre',[x,y-sy/2+.05,z],{still:true,quiet:true,col:'#ff4d4d'});c.obj=o;c.monster={home:[x,y-sy/2+.05,z],speed:clamp(o.speed||7,1,20),aggro:clamp(o.aggro||22,3,80),cd:0};c.walk=c.monster.speed;WORLD.monsters.push(c)}
         else{const c=addChar(makeChar({name:o.name,av:NPC_AV[o.av||'monstre'],pos:[x,y-sy/2+.05,z],canClimb:false,ai:{home:[x,0,z],t:99,r:0,still:true,quiet:true}}));c.obj=o}break;
+      case'objectif':extras.push({type:'goal',pos:[x,y,z],obj:o,taken:0,id:o.id,color:o.color||'#39ffb6'});break;
       case'key':extras.push({type:'key',pos:[x,y,z],obj:o,taken:0,base:[x,y,z],color:o.color||'#ffd23f'});break;
       case'door':b=B(x,y,z,sx,sy,sz,{mat:o.mat||'planches',color:o.color||'#5a3a24'});b.door=o.text||'Clé';WORLD.keys.push(b);break;
       case'mover':{const ax={X:[1,0,0],Y:[0,1,0],Z:[0,0,1]}[o.move?.axis||'X'];b=B(x,y,z,sx,sy,sz,{mat:o.mat||'lisse',color:o.color,move:play?{axis:ax,amp:o.move?.amp??4,speed:o.move?.speed??1}:null});break}}
@@ -190,7 +191,7 @@ function buildObjects(objs,play){let spawn=null;WORLD.lights=[];WORLD.emitters=[
 
 /* ---------- jeu « création » (exécution) ---------- */
 GAMES.custom={name:'Création',get music(){return CUR_GAME?.settings?.music||'sandbox'},genre:'Création',icon:'🛠️',colors:['#7a5cff','#3d8bff'],desc:'',badges:[],
-  build(sv){const G=this,data=CUR_GAME;G.data=data;G.sv=sv;G.stats={};G.statOrder=[];G.lbLabel='';G.lbValue=c=>c.isPlayer&&G.lbLabel?(G.stats[G.lbLabel]??''):'';G.hp=G.maxHp=100;G.tweens=[];G.touching=new Set();G.won=false;
+  build(sv){const G=this,data=CUR_GAME;G.data=data;G.sv=sv;G.stats={};G.statOrder=[];G.lbLabel='';G.lbValue=c=>c.isPlayer&&G.lbLabel?(G.stats[G.lbLabel]??''):'';G.hp=G.maxHp=100;G.tweens=[];G.touching=new Set();G.won=false;G.goalGot=new Set();G.goalDone=false;
     G.sig={Heartbeat:new Signal('Heartbeat'),PlayerAdded:new Signal('PlayerAdded'),Died:new Signal('Died')};G.grav=data.settings?.grav??1;
     const sp=buildObjects(data.objects,true);if(sp)SPAWN=sp;
     {let c=[0,0,0],n=0;for(const o of data.objects){if(o.size[0]>=60||o.type==='spawn')continue;c=V.add(c,o.pos);n++}const s0=sp?sp.pos:[0,0,0];if(n){c=V.mul(c,1/n);const d=V.sub(c,s0);G.camYaw=Math.hypot(d[0],d[2])>2?Math.atan2(-d[0],-d[2]):0}else G.camYaw=0}setClock(data.settings?.clock??14);G.vfx=data.settings?.filter?{...data.settings.filter}:null;applyVisualFilter(G.vfx);applyFog(data.settings);G.inv=new Set();
@@ -200,6 +201,10 @@ GAMES.custom={name:'Création',get music(){return CUR_GAME?.settings?.music||'sa
     for(const b of blocks)if(b.obj&&b.obj.script&&b.obj.script.trim())rt.runScript(b.obj.script,`Script de « ${b.obj.name} »`,{script:CS.mkTbl({Parent:partRef(b),Name:'Script'})});
     for(const c of npcs)if(c.obj&&c.obj.script&&c.obj.script.trim()){c.obj.ev=new Signal('Parlé');const ref={get __type(){return'Model'},__get:k=>k==='Name'?c.name:k==='Talked'?c.obj.ev:k==='Say'||k==='Chat'?(s,m)=>say(c,CS.tostr(m)):k==='Position'?new Vec3(...c.pos):undefined,__set:()=>false};rt.runScript(c.obj.script,`Script de « ${c.name} »`,{script:CS.mkTbl({Parent:ref,Name:'Script'})})}
     setTimeout(()=>G.sig&&G.sig.PlayerAdded.fire(PLAYER_REF),50)},
+  mpState(){return this.goalGot&&this.goalGot.size?{goal:[...this.goalGot].slice(0,60)}:{}},
+  onRemote(c,pr){if(!Array.isArray(pr.goal))return;for(const id of pr.goal){const x=extras.find(e=>e.type==='goal'&&e.id===id);if(x&&!x.taken){x.taken=1;this.goalGot.add(id);sys(`💎 ${c.name} a trouvé « ${filterText(x.obj.name||'Objectif')} »`)}}},
+  goalCheck(){const G=this,all=extras.filter(e=>e.type==='goal');if(!all.length||G.goalDone)return;const n=all.filter(e=>e.taken).length;G.stats['Objectifs']=`${n}/${all.length}`;if(!G.statOrder.includes('Objectifs'))G.statOrder.push('Objectifs');
+    if(n>=all.length){G.goalDone=true;const keys=new Set(all.map(e=>e.obj.text||'Sortie'));for(const d of WORLD.keys||[])if(!d.opened&&keys.has(d.door)){d.opened=true;d.nocol=true;d.alpha=.15}refreshSolids();SFX.levelUp();scMessage('🎉 Objectif d\'équipe terminé ! Les portes s\'ouvrent.',3.5)}},
   spawn(c){const cp=this.cp;const p=cp||SPAWN;return[p.pos[0],p.pos[1]+p.size[1]/2+.05,p.pos[2]]},
   hud(el){el.innerHTML=`<div class="ghud chp" id="cuH"><div class="bar hp"><i id="cuHb"></i><span id="cuHt"></span></div></div>`+(STUDIO.testing?'<button class="btn red stopbtn" id="stStop">■ Arrêter le test</button><div id="tOut" class="tout"></div>':'');
     if(STUDIO.testing)$('stStop').onclick=()=>stopTest()},
@@ -214,6 +219,7 @@ GAMES.custom={name:'Création',get music(){return CUR_GAME?.settings?.music||'sa
     const g=pl.ground;if(g&&g.cp&&G.cp!==g){G.cp=g;g.color='#2fbf71';SFX.checkpoint();toast('Checkpoint !');sparks(V.add(g.pos,[0,.4,0]),[1,3,1.5],16)}
     if(g&&g.finish&&!G.won){G.won=true;confetti(V.add(g.pos,[0,1,0]));scMessage('🏁 Arrivée !',3);if(!STUDIO.testing){G.sv.wins=(G.sv.wins||0)+1;markDirty()}}
     for(const x of extras){if(x.type!=='coin')continue;if(x.taken>0){x.taken-=dt;continue}if(V.len(V.sub(V.add(pl.pos,[0,1.2,0]),x.pos))<1.4){x.taken=12;setStat('Pièces',(G.stats['Pièces']||0)+1);SFX.coin();sparks(x.pos,[3,2.4,.6],12);floatText(V.add(x.pos,[0,1,0]),'+1','#ffd23f')}}
+    for(const x of extras){if(x.type!=='goal'||x.taken)continue;if(V.len(V.sub(V.add(pl.pos,[0,1.2,0]),x.pos))<1.5){x.taken=1;G.goalGot.add(x.id);SFX.pickup();sparks(x.pos,[.6,3,2],16);toast('💎 '+filterText(x.obj.name||'Objectif')+' trouvé !');MP.sendT=0}}G.goalCheck();
     $('cuHb').style.width=(G.hp/G.maxHp*100)+'%';$('cuHt').textContent=`${Math.ceil(G.hp)} / ${G.maxHp}`;$('cuH').style.display=G.hp<G.maxHp||G.showHp?'block':'none';
     if(STUDIO.testing)renderTestOut()},
   click(ray){let best=null,bt=1e9;for(const b of blocks){if(!b.ev||!b.ev.Clicked.has||b.dead||b.hidden)continue;const t=rayAABB(ray.o,ray.d,bnd(b));if(t!=null&&t<bt&&t<60){bt=t;best=b}}if(best){best.ev.Clicked.fire(PLAYER_REF);return true}return false},
@@ -254,5 +260,6 @@ function worldFx(dt,t,play){const W=WORLD;
   for(const c of W.monsters||[]){if(c.dead)continue;const m=c.monster;m.cd-=dt;const d=V.sub(pl.pos,c.pos);d[1]=0;const L=V.len(d);
     if(L<m.aggro&&!pl.dead){c.ai.target=null;c.forceWish=L>.8?V.mul(d,1/L):[0,0,0];if(L<1.3&&m.cd<=0){m.cd=1.2;if(c.obj.text)scMessage(filterText(c.obj.text),2);SFX.scream();die(pl,false)}if(Math.random()<dt*.3)SFX.heartbeat()}
     else c.forceWish=V.len(V.sub(m.home,c.pos))>1.5?V.norm(V.mul(V.sub(m.home,c.pos),1)):[0,0,0]}}
-function drawWorldExtras(L,TR){for(const m of WORLD.meshes||[])if(m.asset&&m.asset.parts)meshDraws(m.asset.parts,M.mul(M.T(...m.pos),M.S(...m.size)),L,TR);
+function drawWorldExtras(L,TR){for(const x of extras)if(x.type==='goal'&&!x.taken){const mm=M.chain(M.T(x.pos[0],x.pos[1]+Math.sin(time*2.2+x.pos[0])*.15,x.pos[2]),M.RY(time*1.6),M.S(...(x.obj.size||[1,1,1]).map(v=>v*.6)));L.push({mesh:MESH.sphere,m:M.mul(mm,M.S(.8,1.3,.8)),mode:3,color:x.color,shin:220,emis:HDR?1.1:.4});glow(x.pos,[.3,1.2,.9],1.1)}
+  for(const m of WORLD.meshes||[])if(m.asset&&m.asset.parts)meshDraws(m.asset.parts,M.mul(M.T(...m.pos),M.S(...m.size)),L,TR);
   for(const x of extras)if(x.type==='key'&&!x.taken){const mm=M.chain(M.T(x.pos[0],x.pos[1]+Math.sin(time*2.5)*.12,x.pos[2]),M.RY(time*2));L.push({mesh:MESH.torus,m:M.mul(mm,M.chain(M.T(0,.25,0),M.RX(Math.PI/2),M.S(.45,.45,.45))),mode:3,color:x.color,shin:200,emis:HDR?.6:.2},{mesh:MESH.box,m:M.mul(mm,M.chain(M.T(0,-.2,0),M.S(.12,.7,.12))),mode:3,color:x.color,shin:200})}}

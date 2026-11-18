@@ -96,6 +96,44 @@ acc('cou','cravate','Cravate',40,'torso',[PT('box',0,.18,.27,.12,.56,.02,'#3d7ef
 acc('epaule','perroquet','Perroquet',350,'torso',[PT('sphere',-.56,.66,0,.24,.32,.24,'#e5484d',{anim:'bob'}),PT('sphere',-.56,.88,.04,.2,.2,.2,'#e5484d',{anim:'bob'}),PT('cone',-.56,.86,.16,.06,.1,.06,'#ffd23f',{rx:Math.PI/2,anim:'bob'}),PT('sphere',-.56,.62,-.1,.1,.26,.16,'#3d7eff',{anim:'bob'})]);
 acc('epaule','chaton','Chaton',280,'torso',[PT('rbox',-.58,.66,0,.24,.2,.32,'#ff9a3d',{anim:'bob'}),PT('rbox',-.58,.82,.12,.2,.18,.18,'#ff9a3d',{anim:'bob'}),PT('cone',-.52,.94,.12,.06,.08,.04,'#ff9a3d',{anim:'bob'}),PT('cone',-.64,.94,.12,.06,.08,.04,'#ff9a3d',{anim:'bob'})]);
 acc('epaule','drone','Mini-drone',520,'torso',[PT('sphere',-.85,1.0,0,.22,.14,.22,'#22252b',{anim:'orbit',shin:120}),PT('sphere',-.85,1.0,.09,.06,.06,.06,'#39ffb6',{anim:'orbit',emis:3})]);
+/* ---------- Collection « Mégapack » : 100 nouveaux objets ---------- */
+(()=>{const COL=[['rouge','#e5484d'],['bleu','#3d7eff'],['vert','#2fbf71'],['jaune','#ffd23f'],['violet','#7a5cff'],['rose','#ff4fa3'],['orange','#ff8a3d'],['noir','#22252b'],['blanc','#f2f2f2'],['turquoise','#39c5bb'],['bordeaux','#7a1f2b'],['kaki','#5f6b3a']];
+  const dk=(h,k=.6)=>{const n=parseInt(h.slice(1),16);return'#'+[(n>>16&255)*k,(n>>8&255)*k,(n&255)*k].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('')};
+  const pr=i=>[0,25,40,60,80,110,150,200,260,350][i%10];
+  // 36 hauts
+  const TOPS=[['plain','T-shirt',{}],['stripes','Marinière',{}],['dots','Chemise à pois',{}],['hoodie','Sweat',{sleeve:'long'}],['jacket','Veste',{sleeve:'long'}],['jersey','Maillot',{text:'7'}],['flannel','Chemise',{sleeve:'long'}],['sport','Haut de sport',{}],['puffer','Doudoune',{sleeve:'long'}]];
+  let k=0;for(let t=0;t<TOPS.length;t++)for(let c=0;c<4;c++){const[pat,n,o]=TOPS[t],[cn,cc]=COL[(t*5+c*3)%COL.length],c2=COL[(t*5+c*3+5)%COL.length][1];add('haut',`mp_h${t}_${c}`,`${n} ${cn}`,pr(k++),{c:cc,c2,pat,...o})}
+  // 24 bas
+  const BOTS=[['jeans','Jean'],['cargo','Cargo'],['sport','Jogging'],['shorts','Short'],['suit','Pantalon chic'],['skirt','Jupe'],['dots','Pyjama']];
+  k=0;for(let t=0;t<BOTS.length;t++)for(let c=0;c<(t<3?4:3);c++){const[pat,n]=BOTS[t],[cn,cc]=COL[(t*7+c*4+1)%COL.length];add('bas',`mp_b${t}_${c}`,`${n} ${cn}`,pr(k++),{c:cc,c2:'#ffffff',pat,shoes:COL[(t+c*5)%COL.length][1]})}
+  // 20 chapeaux
+  COL.slice(0,6).forEach(([cn,cc],i)=>hat('mp_casq_'+i,'Casquette '+cn,20+i*10,[PT('sphere',0,.19,-.01,.74,.44,.74,cc),PT('cyl',0,.2,.3,.56,.03,.4,dk(cc))]));
+  COL.slice(6,11).forEach(([cn,cc],i)=>hat('mp_bon_'+i,'Bonnet '+cn,40+i*10,[PT('sphere',0,.16,0,.75,.62,.75,cc),PT('torus',0,.12,0,1.0,.75,1.0,dk(cc,.8)),PT('sphere',0,.48,0,.2,.2,.2,'#f2f2f2')]));
+  hat('mp_beret','Béret',90,[PT('sphere',.05,.32,0,.8,.22,.8,'#1f2028'),PT('sphere',.05,.45,0,.06,.08,.06,'#1f2028')]);
+  hat('mp_cowboy','Chapeau de cowboy',180,[PT('cyl',0,.28,0,1.2,.04,1.2,'#8d5a2b'),PT('cyl',0,.46,0,.56,.36,.56,'#8d5a2b'),PT('cyl',0,.33,0,.58,.06,.58,'#3b2617')]);
+  hat('mp_chef','Toque de chef',120,[PT('cyl',0,.36,0,.62,.3,.62,'#f2f2f2'),PT('sphere',0,.62,0,.78,.38,.78,'#ffffff')]);
+  hat('mp_aureole','Auréole',500,[PT('torusThin',0,.62,0,.7,.7,.7,'#ffe27a',{emis:1})]);
+  hat('mp_cornes','Cornes de diable',260,[PT('cone',.22,.42,.05,.12,.3,.12,'#c0202a',{rz:-.4}),PT('cone',-.22,.42,.05,.12,.3,.12,'#c0202a',{rz:.4})]);
+  hat('mp_lapin','Oreilles de lapin',150,[PT('sphere',.14,.62,0,.14,.5,.08,'#f2f2f2'),PT('sphere',-.14,.62,0,.14,.5,.08,'#f2f2f2'),PT('sphere',.14,.62,.02,.07,.36,.06,'#ffb3c8'),PT('sphere',-.14,.62,.02,.07,.36,.06,'#ffb3c8')]);
+  hat('mp_casque_moto','Casque de moto',300,[PT('sphere',0,.08,0,.86,.86,.86,'#e5484d',{shin:200}),PT('rbox',0,.04,.34,.6,.26,.1,'#101114',{shin:240})]);
+  hat('mp_citrouille','Tête citrouille',350,[PT('sphere',0,.05,0,.95,.85,.95,'#ff8a3d'),PT('cyl',0,.5,0,.08,.14,.08,'#2f6a2a')]);
+  hat('mp_pirate','Chapeau de pirate',200,[PT('rbox',0,.38,0,1.05,.26,.5,'#1a1a1a'),PT('sphere',0,.44,.25,.12,.12,.03,'#f2f2f2')]);
+  // 20 accessoires
+  COL.slice(0,5).forEach(([cn,cc],i)=>acc('lunettes','mp_lun_'+i,'Lunettes '+cn,40+i*15,'head',[PT('rbox',.13,.03,.35,.2,.12,.04,cc,{shin:220}),PT('rbox',-.13,.03,.35,.2,.12,.04,cc,{shin:220}),PT('box',0,.06,.35,.1,.025,.02,dk(cc))]));
+  acc('lunettes','mp_masque','Masque de super-héros',90,'head',[PT('box',0,.05,.34,.6,.14,.03,'#1f2028'),PT('box',.13,.05,.355,.12,.06,.01,'#ffffff',{emis:.4}),PT('box',-.13,.05,.355,.12,.06,.01,'#ffffff',{emis:.4})]);
+  acc('lunettes','mp_nez_clown','Nez de clown',35,'head',[PT('sphere',0,-.02,.38,.12,.12,.12,'#e5484d',{shin:200})]);
+  COL.slice(4,9).forEach(([cn,cc],i)=>acc('cou','mp_ech_'+i,'Écharpe '+cn,40+i*10,'torso',[PT('torus',0,.5,0,1.15,.8,.85,cc),PT('rbox',.2,.15,.28,.18,.5,.06,cc)]));
+  acc('cou','mp_medaille','Médaille d\'or',220,'torso',[PT('torusThin',0,.33,.14,.95,.95,.95,'#3d7eff',{rx:.7}),PT('cyl',0,.02,.31,.2,.04,.2,'#f2c14e',{rx:Math.PI/2,...GOLD})]);
+  acc('cou','mp_cravate','Cravate',60,'torso',[PT('box',0,.22,.27,.12,.42,.03,'#c0202a'),PT('box',0,.44,.27,.14,.08,.04,'#8f1520')]);
+  acc('dos','mp_cape_v','Cape violette',180,'torso',[PT('box',0,-.12,-.3,.98,1.25,.04,'#7a5cff',{rx:.12,anim:'cape'})]);
+  acc('dos','mp_cape_n','Cape nuit étoilée',320,'torso',[PT('box',0,-.12,-.3,.98,1.25,.04,'#160f3a',{rx:.12,anim:'cape',emis:.15})]);
+  acc('dos','mp_guitare','Guitare dans le dos',240,'torso',[PT('sphere',.12,-.2,-.36,.42,.5,.12,'#b5651d',{rz:.5}),PT('box',-.12,.25,-.36,.08,.6,.06,'#3b2617',{rz:.5})]);
+  acc('dos','mp_carquois','Carquois',130,'torso',[PT('cyl',.1,.05,-.38,.22,.8,.22,'#6d4a2a',{rz:.35}),PT('cone',0,.5,-.38,.06,.14,.06,'#e5484d',{rz:.35})]);
+  acc('epaule','mp_perroquet','Perroquet',260,'torso',[PT('sphere',.42,.62,0,.2,.26,.2,'#2fbf71'),PT('sphere',.42,.82,.04,.15,.15,.15,'#e5484d'),PT('cone',.42,.8,.16,.05,.08,.05,'#ffd23f',{rx:Math.PI/2})]);
+  acc('epaule','mp_chaton','Chaton sur l\'épaule',240,'torso',[PT('sphere',.42,.62,0,.24,.2,.22,'#ff8a3d'),PT('sphere',.42,.8,.05,.18,.17,.17,'#ff8a3d'),PT('cone',.36,.92,.05,.05,.07,.05,'#ff8a3d'),PT('cone',.48,.92,.05,.05,.07,.05,'#ff8a3d')]);
+  acc('epaule','mp_robot','Mini-robot',300,'torso',[PT('rbox',.42,.68,0,.24,.24,.24,'#9aa4b2',MET),PT('box',.42,.7,.13,.14,.05,.01,'#39ffb6',{emis:1})]);
+})();
+
 /* ---------- Emotes ---------- */
 [['salut','Saluer',0],['danse','Danser',0],['applaudir','Applaudir',0],['pointe','Pointer',0],['robot','Danse robot',120],['disco','Disco',150],['toupie','Toupie',90],['flexion','Pompes',75],['dab','Dab',60],['rire','Fou rire',0],['pleurer','Pleurer',40],['hourra','Hourra !',0],['courbette','Courbette',50],['assis','S\'asseoir',0],['salto','Salto arrière',200],['zombie','Zombie',110],['guitare','Air guitare',160],['moonwalk','Glissé',180],['meditation','Méditation',90],['muscles','Muscles',70]].forEach(([id,n,p])=>add('emote','e_'+id,n,p,{emote:id}));
 
