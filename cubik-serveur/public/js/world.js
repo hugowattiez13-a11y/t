@@ -22,6 +22,7 @@ function finalizeWorld(){for(const p of blocks)bmat(p);refreshSolids()}
 // Hitbox = forme exacte du modèle : jambes (0→1), torse + bras (1→2,02), tête (2,02→2,64)
 const HB=[[0,1,.47,.25],[1,2.02,.96,.26],[2.02,2.64,.35,.35]];
 const HW=.96,HD=.26,H=2.64,STEP=.55,GRAV=40,JUMP=13,WALK=8,CLIMB=5.2,BOUNCE=25;
+function crouchBlocked(c){const b0=bodyOf(c.av),legT=b0.h,torT=2.02*b0.h,headT=torT+.62*b0.hd,full=[[0,legT,.47*b0.w,.25*b0.w],[legT,torT,.96*b0.w,.26*b0.w],[torT,headT,.35*b0.hd,.35*b0.hd]];const sv=c.hb,sh=c.H;c.hb=full;c.H=headT;let hit=false;for(const p of solids){if(p.nocol||p.kind==='lava')continue;const b=bnd(p);if(b.mn[1]>c.pos[1]+headT||b.mx[1]<c.pos[1]+.3)continue;if(sat(c,b)){hit=true;break}}c.hb=sv;c.H=sh;return hit}
 function sat(c,b){let best=null,bl=0;for(const h of(c.hb||HB)){if(c.pos[1]+h[0]>=b.mx[1]-1e-4||c.pos[1]+h[1]<=b.mn[1]+1e-4)continue;const m=sat1(c,b,h[2],h[3]);if(m){const l=Math.hypot(m[0],m[1]);if(l>bl){bl=l;best=m}}}return best}
 function sat1(c,b,HW,HD){const ux=Math.cos(c.yaw),uz=-Math.sin(c.yaw),fx=Math.sin(c.yaw),fz=Math.cos(c.yaw);
   const bx=(b.mx[0]-b.mn[0])/2,bz=(b.mx[2]-b.mn[2])/2,dx=(b.mx[0]+b.mn[0])/2-c.pos[0],dz=(b.mx[2]+b.mn[2])/2-c.pos[2];let best=1e9,r=null;
@@ -80,7 +81,9 @@ function stepChar(c,dt,t,inp){
     return}
   /* marche / saut */
   const mat=c.ground?MATS[c.ground.mat]||{}:{};
-  const spd=(c.walk||WALK)*(mat.speed||1)*(c.inWater?.6:1),fr=c.grounded?16*(mat.fric??1):5;
+  if(typeof bodyHitbox==='function'&&c.av)bodyHitbox(c);
+  if(!c.remote){const want=!!inp.down&&!c.climb&&!c.swimming;if(want)c.crouch=true;else if(c.crouch&&!crouchBlocked(c))c.crouch=false}
+  const spd=(c.walk||WALK)*(mat.speed||1)*(c.inWater?.6:1)*(c.crouch?.48:1),fr=c.grounded?16*(mat.fric??1):5;
   c.vel[0]=lerp(c.vel[0],inp.wish[0]*spd,Math.min(1,fr*dt));c.vel[2]=lerp(c.vel[2],inp.wish[2]*spd,Math.min(1,fr*dt));
   if(wl>.05)c.yaw=angLerp(c.yaw,Math.atan2(inp.wish[0],inp.wish[2]),Math.min(1,dt*14));
   c.coyote=c.grounded?.1:c.coyote-dt;
@@ -199,6 +202,7 @@ function animate(c,dt,t){const a=c.a,hs=Math.hypot(c.vel[0],c.vel[2]);
   if(c.clap>0&&!c.climb&&!c.mantle){c.clap-=dt;const s=Math.abs(Math.sin(t*9));T.armL=T.armR=-1.35;T.sideL=-.35+.45*s;T.sideR=.35-.45*s;T.bob+=s*.02;if(c.state==='repos')c.state='applaudit'}
   if(c.wave>0&&!c.climb&&!c.mantle){c.wave-=dt;T.armR=0;T.sideR=-2.55+Math.sin(t*12)*.35;T.head=-.05;if(c.state==='repos')c.state='salut'}
   if(c.swing>0){const k=1-c.swing/.38;T.armR=lerp(-2.7,.5,Math.min(1,k*1.4));T.sideR=-.3;T.twist=lerp(.45,-.35,k);c.swing-=dt}
+  if(c.crouch&&!c.swimming&&!c.climb&&!c.mantle){T.bob-=.62;T.legL=T.legL*.4-1.15;T.legR=T.legR*.4-1.15;T.lean+=.35;T.head-=.25;T.armL=T.armL*.6-.5;T.armR=T.armR*.6-.5;if(c.state==='repos'||c.state==='marche')c.state='accroupi'}
   if(c.land>0){c.land-=dt*5;const l=Math.max(c.land,0);T.bob-=.16*l;T.legL-=.35*l;T.legR-=.35*l;T.armL+=.3*l;T.armR+=.3*l}
   const kk=Math.min(1,dt*(c.grounded||c.climb||c.mantle?16:11));for(const n in T){if(n==='twist'&&c.emote==='toupie'&&!(c.sn>.12)){a.twist=T.twist;continue}a[n]=lerp(a[n],T[n],c.swing>0&&(n==='armR'||n==='twist')?Math.min(1,dt*30):kk)}
   c.blinkT-=dt;if(c.blinkT<0){c.blink=.12;c.blinkT=rnd(2,5)}c.blink-=dt;

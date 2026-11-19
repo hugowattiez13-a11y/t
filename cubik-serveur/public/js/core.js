@@ -167,15 +167,19 @@ void main(){vec3 c=vec3(0);
   c+=2.*(texture(uSrc,vU+vec2(-1,0)*uTx).rgb+texture(uSrc,vU+vec2(1,0)*uTx).rgb+texture(uSrc,vU+vec2(0,-1)*uTx).rgb+texture(uSrc,vU+vec2(0,1)*uTx).rgb);
   c+=4.*texture(uSrc,vU).rgb;o=vec4(c/16.,1.);}`;
 const COMP=`#version 300 es
-precision highp float;in vec2 vU;out vec4 o;uniform sampler2D uScene,uBloom;uniform float uBloomI,uHDR,uTime,uExp,uFlare;uniform vec2 uRes,uSunP;
+precision highp float;in vec2 vU;out vec4 o;uniform sampler2D uScene,uBloom;uniform float uBloomI,uHDR,uTime,uExp,uFlare,uGod,uSharp,uCA,uSat,uCon,uSunOn;uniform vec2 uRes,uSunP;uniform vec3 uTint;
 ${COMMON}
-void main(){vec3 c=texture(uScene,vU).rgb;
-  if(uHDR>.5){c+=texture(uBloom,vU).rgb*uBloomI;c=pow(aces(c*uExp),vec3(1./2.2));}
+void main(){vec3 c=texture(uScene,vU).rgb;vec2 tx=1./uRes;
+  if(uCA>.001){vec2 dd=(vU-.5)*uCA*.012;c.r=texture(uScene,vU+dd).r;c.b=texture(uScene,vU-dd).b;}
+  if(uSharp>.001){vec3 n=texture(uScene,vU+vec2(tx.x,0.)).rgb+texture(uScene,vU-vec2(tx.x,0.)).rgb+texture(uScene,vU+vec2(0.,tx.y)).rgb+texture(uScene,vU-vec2(0.,tx.y)).rgb;c=max(c+(c*4.-n)*uSharp*.18,vec3(0.));}
+  if(uHDR>.5){c+=texture(uBloom,vU).rgb*uBloomI;
+    if(uGod>.001&&uSunOn>.5){vec2 dl=(uSunP-vU)/28.;vec2 sp=vU;float dec=1.;vec3 gr=vec3(0.);for(int i=0;i<28;i++){sp+=dl;vec3 b=texture(uBloom,clamp(sp,0.,1.)).rgb;gr+=b*dec;dec*=.92;}c+=gr*uGod*.022*vec3(1.,.93,.8);}
+    c=pow(aces(c*uExp),vec3(1./2.2));}
   if(uFlare>.01){vec2 asp=vec2(uRes.x/uRes.y,1.);vec2 d=(vU-uSunP)*asp;float g=exp(-length(d)*6.)*.35+exp(-abs(d.y)*90.)*exp(-abs(d.x)*3.)*.12;vec3 f=vec3(1.,.92,.75)*g;
     for(int i=1;i<=4;i++){float k=float(i)*.42-.2;vec2 gp=uSunP+(vec2(.5)-uSunP)*k*2.;float r=length((vU-gp)*asp);float sz=.03+.025*float(i);
       f+=mix(vec3(.4,.7,1.),vec3(1.,.6,.4),fract(float(i)*.37))*smoothstep(sz,sz*.6,r)*.07;}
     c+=f*uFlare;}
-  float l=dot(c,vec3(.299,.587,.114));c=mix(vec3(l),c,1.1);c=(c-.5)*1.05+.5;
+  c*=uTint;float l=dot(c,vec3(.299,.587,.114));c=mix(vec3(l),c,1.1*uSat);c=(c-.5)*(1.05*uCon)+.5;
   vec2 q=vU-.5;c*=1.-dot(q,q)*.6;
   c+=(hash(vU*uRes+fract(uTime)*91.)-.5)*.014;
   o=vec4(c,1.);}`;

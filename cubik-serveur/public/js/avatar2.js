@@ -6,8 +6,8 @@
    ============================================================================ */
 const BODY_PRESETS={classique:{n:'Classique',ic:'🧍',h:1,w:1,hd:1},fin:{n:'Fin',ic:'🕴️',h:1.04,w:.86,hd:.96},costaud:{n:'Costaud',ic:'🏋️',h:1.02,w:1.2,hd:1},mini:{n:'Mini',ic:'🧒',h:.82,w:.94,hd:1.16},grand:{n:'Grand',ic:'🦒',h:1.13,w:.98,hd:.97},cartoon:{n:'Cartoon',ic:'🤪',h:.9,w:1.04,hd:1.32}};
 function bodyOf(av){const b=av&&av.body;if(!b)return BODY_PRESETS.classique;const P=BODY_PRESETS[b.t]||BODY_PRESETS.classique;const cl=(v,a,z,d)=>typeof v==='number'&&isFinite(v)?Math.min(z,Math.max(a,v)):d;return{h:cl(b.h,.8,1.18,P.h),w:cl(b.w,.82,1.25,P.w),hd:cl(b.hd,.85,1.35,P.hd)}}
-function bodyHitbox(c){const b=bodyOf(c.av),k=b.h+'|'+b.w+'|'+b.hd;if(c._bk===k)return;c._bk=k;
-  const legT=1*b.h,torT=2.02*b.h,headT=torT+.62*b.hd;c.hb=[[0,legT,.47*b.w,.25*b.w],[legT,torT,.96*b.w,.26*b.w],[torT,headT,.35*b.hd,.35*b.hd]];c.H=headT;c.bodyS=b}
+function bodyHitbox(c){const b=bodyOf(c.av),cr=c.crouch&&!c.swimming&&!c.climb?.7:1,k=b.h+'|'+b.w+'|'+b.hd+'|'+cr;if(c._bk===k)return;c._bk=k;
+  const legT=1*b.h*cr,torT=2.02*b.h*cr,headT=torT+.62*b.hd*(cr<1?.92:1);c.hb=[[0,legT,.47*b.w,.25*b.w],[legT,torT,.96*b.w,.26*b.w],[torT,headT,.35*b.hd,.35*b.hd]];c.H=headT;c.bodyS=b}
 function charDraws(c,L,TR,time){if(c.dead||c.left||c.hidden)return;bodyHitbox(c);const b=c.bodyS,a=c.a,p=c.pos,av=c.av,tx=avatarTex(av);
   const fl=(a.flip||0)+(a.pitch||0);const piv=1.3*b.h;
   const root0=fl?M.chain(M.T(p[0],p[1]+a.bob,p[2]),M.RY(c.yaw+a.twist),M.RX(a.lean),M.T(0,piv,0),M.RX(fl),M.T(0,-piv,0)):M.chain(M.T(p[0],p[1]+a.bob,p[2]),M.RY(c.yaw+a.twist),M.RX(a.lean));

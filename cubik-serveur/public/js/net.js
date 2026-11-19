@@ -76,14 +76,14 @@ const MP={room:null,remote:new Map(),seq:0,sendT:0,lastSent:'',chat:null,react:n
   tick(dt){if(!this.room||!pl)return;this.sendT-=dt;if(this.sendT>0)return;const moving=V.len(pl.vel)>.1;this.sendT=moving?.066:.5;
     const r2=v=>Math.round(v*100)/100;const p={n:ACC.pseudo.slice(0,20),av:compactAv(ACC.avatar),p:pl.pos.map(r2),v:pl.vel.map(v=>Math.round(v*10)/10),y:r2(pl.yaw),g:pl.grounded?1:0,
       cl:pl.climb?pl.climb.n.map(r2):0,w:pl.inWater?1:0,sm:pl.swimming?1:0,e:pl.emote||0,d:pl.dance?1:0,dd:pl.dead?1:0,wv:pl.wave>0?1:0,sw:pl.swing>0?1:0,lb:WORLD.lbValue?String(WORLD.lbValue(pl)).slice(0,24):'',lbl:WORLD.lbLabel||'',
-      h:pl.held?1:0,gt:typeof myGroupTag==='function'?myGroupTag():'',c:this.chat||0,r:this.react||0,vip:pl.vip?1:0,id:myFid(),t:Date.now(),...(WORLD.mpState?WORLD.mpState():{})};
+      h:pl.held?1:0,cr:pl.crouch?1:0,gt:typeof myGroupTag==='function'?myGroupTag():'',c:this.chat||0,r:this.react||0,vip:pl.vip?1:0,id:myFid(),t:Date.now(),...(WORLD.mpState?WORLD.mpState():{})};
     const k=JSON.stringify({...p,t:0});if(k===this.lastSent&&this.sendT>0.2)return;this.lastSent=k;this.room.presence(p).catch(()=>{})},
   sendChat(text){this.chat={i:++this.seq,x:text.slice(0,120)};this.sendT=0},sendReact(e){this.react={i:++this.seq,e};this.sendT=0},
   sync(peers){const seen=new Set();for(const P of peers){if(P.isMe||P.kind!=='viewer')continue;const pr=P.presence||{};if(!pr.p||!Array.isArray(pr.p))continue;seen.add(P.peer);
       let c=this.remote.get(P.peer);if(!c){if(this.remote.size>=MAX_PER_SERVER*2)continue;c=addChar(makeChar({name:filterText(String(pr.n||'Joueur')).slice(0,20),remote:true,peer:P.peer,av:expandAv(pr.av),pos:[...pr.p],nameCol:'#7fe3ff',canClimb:false}));
         this.remote.set(P.peer,c);c.target=[...pr.p];sys(`${c.name} a rejoint le serveur.`);SFX.pop(.5)}
       c.target=pr.p.map(Number);c.tAt=performance.now();c.tv=Array.isArray(pr.v)?pr.v.map(Number):[0,0,0];c.tyaw=+pr.y||0;c.grounded=!!pr.g;c.inWater=!!pr.w;c.swimming=!!pr.sm;c.climb=Array.isArray(pr.cl)?{n:pr.cl.map(Number),p:null}:null;
-      c.emote=typeof pr.e==='string'?pr.e:null;c.dance=!!pr.d;{const nl=String(pr.lb||'');if(nl.startsWith('🏁')&&c.lb!==undefined&&!String(c.lb).startsWith('🏁')){sys(`🏆 ${c.name} a terminé ! (${nl.slice(2)})`);SFX.win()}c.lb=nl}c.lbl=String(pr.lbl||'');if(pr.wv&&!(c.wave>0))c.wave=1.2;if(pr.sw&&!(c.swing>0))c.swing=.38;
+      c.emote=typeof pr.e==='string'?pr.e:null;c.crouch=!!pr.cr;c.dance=!!pr.d;{const nl=String(pr.lb||'');if(nl.startsWith('🏁')&&c.lb!==undefined&&!String(c.lb).startsWith('🏁')){sys(`🏆 ${c.name} a terminé ! (${nl.slice(2)})`);SFX.win()}c.lb=nl}c.lbl=String(pr.lbl||'');if(pr.wv&&!(c.wave>0))c.wave=1.2;if(pr.sw&&!(c.swing>0))c.swing=.38;
       if(pr.dd&&!c.dead){die(c,false);c.dead=99}else if(!pr.dd&&c.dead){c.dead=0;c.pos=[...c.target]}
       const av=expandAv(pr.av);if(JSON.stringify(av)!==JSON.stringify(c.av))c.av=av;
       if(pr.c&&pr.c.i!==c.lastChat){c.lastChat=pr.c.i;if(c.seenChat)say(c,String(pr.c.x||''));c.seenChat=true}else if(!c.seenChat)c.seenChat=true;

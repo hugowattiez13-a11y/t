@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id);
 let MODE='boot',cam={yaw:0,pitch:.3,dist:12,target:[0,2,12]},camEye=[0,0,0],shake=0,fovKick=0,time=0,camDistS=12,flareI=0,lastVP=M.id();
 const keys=new Set();let joy={x:0,y:0},jumpPressed=false,camDrag=false,isTouch=matchMedia('(pointer:coarse)').matches;
-const SET_DEFAULT={q:isTouch?5:8,auto:false,vol:80,amb:60,mus:50,sens:1,invY:false,autoJump:isTouch,bubbles:true,hit:false,info:false};
+const SET_DEFAULT={god:true,sharp:true,ca:false,grade:true,q:isTouch?5:8,auto:false,vol:80,amb:60,mus:50,sens:1,invY:false,autoJump:isTouch,bubbles:true,hit:false,info:false};
 let SET={...SET_DEFAULT};
 function QS(){const l=clamp(SET.q|0,1,10);return{level:l,dpr:l>=9?2:(l>=6?1.5:1),scale:[.5,.6,.7,.8,.9,1,1,1,1,1][l-1],sh:l<=2?0:(l<=4?1024:(l<=8?2048:4096)),
   taps:[0,0,4,4,8,8,12,16,16,16][l-1],bloom:l>=4,msaa:l>=5?4:0,parts:[.25,.35,.5,.6,.7,.8,.9,1,1,1][l-1],flare:l>=7,clouds:l>=3}}
@@ -81,7 +81,7 @@ function renderFrame(dt,o){const Q=QC,dpr=Math.min(devicePixelRatio||1,Q.dpr),w=
   flareI=lerp(flareI,fl,Math.min(1,dt*6));
   gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);gl.useProgram(PC.p);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,RT.scene.t);gl.uniform1i(PC.u.uScene,0);
   gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,bloomOn?RT.bloom[0].t:RT.scene.t);gl.uniform1i(PC.u.uBloom,1);
-  gl.uniform1f(PC.u.uBloomI,bloomOn?.4:0);gl.uniform1f(PC.u.uHDR,H_);gl.uniform1f(PC.u.uTime,time);gl.uniform1f(PC.u.uExp,.92);gl.uniform2f(PC.u.uRes,w,h);gl.uniform2f(PC.u.uSunP,sx,sy);gl.uniform1f(PC.u.uFlare,flareI);
+  gl.uniform1f(PC.u.uBloomI,bloomOn?.4:0);gl.uniform1f(PC.u.uHDR,H_);gl.uniform1f(PC.u.uTime,time);gl.uniform1f(PC.u.uExp,.92);gl.uniform2f(PC.u.uRes,w,h);gl.uniform2f(PC.u.uSunP,sx,sy);gl.uniform1f(PC.u.uFlare,flareI);{const Gd=gradeNow();gl.uniform3f(PC.u.uTint,...Gd.t);gl.uniform1f(PC.u.uSat,Gd.s);gl.uniform1f(PC.u.uCon,Gd.c);gl.uniform1f(PC.u.uGod,SET.god!==false&&H_>.5?Gd.g:0);gl.uniform1f(PC.u.uSunOn,sx>-.2&&sx<1.2&&sy>-.2&&sy<1.2&&!(WORLD.fog>.02)?1:0);gl.uniform1f(PC.u.uSharp,SET.sharp!==false?1:0);gl.uniform1f(PC.u.uCA,SET.ca?1:(Gd.ca||0))}
   gl.drawArrays(gl.TRIANGLES,0,3);gl.enable(gl.DEPTH_TEST);return VP}
 
 /* ============================== RENDU DU JEU ============================== */
@@ -108,7 +108,7 @@ function renderGame(dt){
   for(const c of chars)if(c===pl||inView(V.add(c.pos,[0,1.3,0]),2.6))charDraws(c,L,TR,time);
   WORLD.extraDraw&&WORLD.extraDraw(L,TR,time);
   for(const w_ of waters){const mn=V.sub(w_.pos,V.mul(w_.size,.5));TR.push({mesh:MESH.box,m:M.mul(M.T(...w_.pos),M.S(...w_.size)),mode:9,color:w_.color||'#3fb6c9',shin:200,bmin:mn,bsize:w_.size})}
-  let debug=null;if(SET.hit){debug=[];for(const c of chars)if(!c.dead&&!c.left)HB.forEach(h=>debug.push({mesh:MESH.box,m:M.chain(M.T(c.pos[0],c.pos[1]+(h[0]+h[1])/2,c.pos[2]),M.RY(c.yaw),M.S(h[2]*2,h[1]-h[0],h[3]*2)),mode:7,color:c.swimming?'#3fb6ff':c.climb?'#38d9ff':(c.isPlayer?'#ff9a3d':'#b8ff5a'),alpha:.14}))}
+  let debug=null;if(SET.hit){debug=[];for(const c of chars)if(!c.dead&&!c.left)(c.hb||HB).forEach(h=>debug.push({mesh:MESH.box,m:M.chain(M.T(c.pos[0],c.pos[1]+(h[0]+h[1])/2,c.pos[2]),M.RY(c.yaw),M.S(h[2]*2,h[1]-h[0],h[3]*2)),mode:7,color:c.swimming?'#3fb6ff':c.climb?'#38d9ff':(c.isPlayer?'#ff9a3d':'#b8ff5a'),alpha:.14}))}
   const C0=pl.pos;const VP=renderFrame(dt,{eye,target:cam.target,L,TR,shadowCenter:[C0[0],Math.max(0,C0[1]-2),C0[2]],fov:62+fovKick,debug});
   updBubbles(dt,VP,cv.clientWidth,cv.clientHeight);updPrompts(VP);updFloat(dt,VP);updReacts(dt,VP)}
 
@@ -176,7 +176,7 @@ const typing=()=>document.activeElement===$('chatIn');
 const gameBlocked=()=>$('gmenu').classList.contains('open')||$('result').classList.contains('open')||typing()||dialogOpen();
 function playerWish(){let ix=0,iz=0;if(!gameBlocked()){if(keys.has('KeyW')||keys.has('ArrowUp'))iz+=1;if(keys.has('KeyS')||keys.has('ArrowDown'))iz-=1;if(keys.has('KeyD')||keys.has('ArrowRight'))ix+=1;if(keys.has('KeyA')||keys.has('ArrowLeft'))ix-=1;ix+=joy.x;iz+=joy.y}
   const l=Math.hypot(ix,iz);if(l>1){ix/=l;iz/=l}const f=[-Math.sin(cam.yaw),0,-Math.cos(cam.yaw)],r=[Math.cos(cam.yaw),0,-Math.sin(cam.yaw)];return Object.assign(V.add(V.mul(f,iz),V.mul(r,ix)),{ix,iz})}
-function playerInput(){const w=playerWish(),j=jumpPressed&&!gameBlocked();jumpPressed=false;const blk=gameBlocked();return{ix:w.ix,iz:w.iz,wish:[w[0],w[1],w[2]],jump:j,up:!blk&&(keys.has('Space')||jumpHeld),down:!blk&&(keys.has('KeyC')||keys.has('ControlLeft'))}}
+function playerInput(){const w=playerWish(),j=jumpPressed&&!gameBlocked();jumpPressed=false;const blk=gameBlocked();return{ix:w.ix,iz:w.iz,wish:[w[0],w[1],w[2]],jump:j,up:!blk&&(keys.has('Space')||jumpHeld),down:!blk&&(keys.has('KeyC')||keys.has('ControlLeft')||!!window.touchCrouch)}}
 let jumpHeld=false;
 addEventListener('keydown',e=>{audioInit();if(MODE!=='game')return;
   if(e.code==='Escape'){e.preventDefault();if(typing()){closeChat();return}if(dialogOpen()){$('dialog').classList.remove('open');return}if($('result').classList.contains('open'))return;toggleGMenu();return}
@@ -236,7 +236,8 @@ function settingsPanel(B,onChange){const sw=(k,label,sub)=>el('div',{class:'set'
   const q=QS();B.append(el('div',{class:'note',text:`Niveau ${q.level} : résolution ${Math.round(q.scale*100)} % · ombres ${q.sh?q.sh+' px':'non'} · halo ${q.bloom?'oui':'non'} · anticrénelage ${q.msaa?'×'+q.msaa:'non'} · particules ${Math.round(q.parts*100)} %`}));
   B.append(el('h3',{text:'Son'}),rng('vol','Volume général',0,100,1,v=>v+' %'),rng('amb','Ambiance',0,100,1,v=>v+' %'),rng('mus','Musique',0,100,1,v=>v+' %'));
   B.append(el('h3',{text:'Commandes'}),rng('sens','Sensibilité caméra',.3,2.5,.1,v=>(+v).toFixed(1)+'×'),sw('invY','Inverser l\'axe vertical'),sw('autoJump','Saut automatique','Saute tout seul devant les obstacles'));
-  B.append(el('h3',{text:'Affichage'}),sw('bubbles','Bulles de discussion'),sw('hit','Afficher la hitbox','Touche H'),sw('info','Infos (FPS, état)'))}
+  B.append(el('h3',{text:'Affichage'}),sw('bubbles','Bulles de discussion'),sw('hit','Afficher la hitbox','Touche H'),sw('info','Infos (FPS, état)'));
+  B.append(el('h3',{text:'Effets avancés'}),sw('god','Rayons de soleil','Lumière volumétrique quand on regarde le soleil'),sw('sharp','Netteté','Image plus précise'),sw('grade','Étalonnage des couleurs','Ambiance de couleur différente pour chaque jeu'),sw('ca','Aberration chromatique','Effet de lentille sur les bords'));if(typeof langPanel==='function')langPanel(B,onChange)}
 function renderGMenu(){document.querySelectorAll('#gmenu .tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===gTab));const B=$('gBody');B.innerHTML='';
   if(gTab==='amis'){gFriendsTab(B);return}
   if(gTab==='joueurs'){B.append(el('h3',{text:`Dans ce serveur · ${chars.filter(c=>!c.left&&!(c.ai&&!c.remote)).length} joueur(s)${MP.room?' · serveur '+MP.server:' · hors ligne'}`}));
@@ -283,3 +284,7 @@ function frame(now){const raw=(now-lastT)/1000,dt=Math.min(raw,1/20);lastT=now;t
   }catch(err){console.error(err);if(!frame.errT||performance.now()-frame.errT>5000){frame.errT=performance.now();if(MODE==='studio'&&typeof studioOut==='function')studioOut('Erreur du moteur : '+err.message,'err')}}
   requestAnimationFrame(frame)}
 let thumbPump=null,hitStop=0;
+
+/* étalonnage des couleurs par ambiance de jeu */
+const GRADES={neutre:{t:[1.02,1,.98],s:1,c:1,g:1},horreur:{t:[.9,.97,1.08],s:.72,c:1.12,g:.4,ca:.6},chaud:{t:[1.08,1,.9],s:1.1,c:1.04,g:1.3},froid:{t:[.94,1,1.1],s:.95,c:1.03,g:.9},vif:{t:[1,1,1],s:1.22,c:1.06,g:1},nuit:{t:[.88,.95,1.12],s:.85,c:1.08,g:.3},desert:{t:[1.1,1.02,.86],s:1.05,c:1.05,g:1.4}};
+function gradeNow(){if(SET.grade===false||MODE!=='game')return GRADES.neutre;const id=typeof GAME_ID!=='undefined'?GAME_ID:'',G=GAMES[id]||{};const k=WORLD.grade||G.grade||(G.genre==='Horreur'?'horreur':({neige:'froid',peche:'chaud',ferme:'chaud',survie:'chaud',animaux:'vif',course:'vif',foot:'vif',cache:'vif',royale:'chaud',mine:'desert',tour:'chaud',maree:'froid',donjon:'nuit',prison:'nuit',zombies:'nuit'})[id]||'neutre');return GRADES[k]||GRADES.neutre}
