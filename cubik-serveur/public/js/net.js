@@ -73,29 +73,29 @@ const MP={room:null,remote:new Map(),seq:0,sendT:0,lastSent:'',chat:null,react:n
   stop(){if(this.unsub)try{this.unsub()}catch(e){}if(this.room&&this.room.leave&&this.room!==Cloud.roomApi)this.room.leave().catch(()=>{});this.room=null;this.unsub=null;
     for(const c of this.remote.values())removeRemote(c);this.remote.clear();this.game=null;this.priv=null;VOICE.listening=null;Lobby.set('menu')},
   // envoi : position arrondie, seulement si quelque chose a changé
-  tick(dt){if(!this.room||!pl)return;this.sendT-=dt;if(this.sendT>0)return;const moving=V.len(pl.vel)>.1;this.sendT=moving?.1:.5;
+  tick(dt){if(!this.room||!pl)return;this.sendT-=dt;if(this.sendT>0)return;const moving=V.len(pl.vel)>.1;this.sendT=moving?.066:.5;
     const r2=v=>Math.round(v*100)/100;const p={n:ACC.pseudo.slice(0,20),av:compactAv(ACC.avatar),p:pl.pos.map(r2),v:pl.vel.map(v=>Math.round(v*10)/10),y:r2(pl.yaw),g:pl.grounded?1:0,
       cl:pl.climb?pl.climb.n.map(r2):0,w:pl.inWater?1:0,sm:pl.swimming?1:0,e:pl.emote||0,d:pl.dance?1:0,dd:pl.dead?1:0,wv:pl.wave>0?1:0,sw:pl.swing>0?1:0,lb:WORLD.lbValue?String(WORLD.lbValue(pl)).slice(0,24):'',lbl:WORLD.lbLabel||'',
-      h:pl.held?1:0,c:this.chat||0,r:this.react||0,vip:pl.vip?1:0,id:myFid(),t:Date.now(),...(WORLD.mpState?WORLD.mpState():{})};
+      h:pl.held?1:0,gt:typeof myGroupTag==='function'?myGroupTag():'',c:this.chat||0,r:this.react||0,vip:pl.vip?1:0,id:myFid(),t:Date.now(),...(WORLD.mpState?WORLD.mpState():{})};
     const k=JSON.stringify({...p,t:0});if(k===this.lastSent&&this.sendT>0.2)return;this.lastSent=k;this.room.presence(p).catch(()=>{})},
   sendChat(text){this.chat={i:++this.seq,x:text.slice(0,120)};this.sendT=0},sendReact(e){this.react={i:++this.seq,e};this.sendT=0},
   sync(peers){const seen=new Set();for(const P of peers){if(P.isMe||P.kind!=='viewer')continue;const pr=P.presence||{};if(!pr.p||!Array.isArray(pr.p))continue;seen.add(P.peer);
       let c=this.remote.get(P.peer);if(!c){if(this.remote.size>=MAX_PER_SERVER*2)continue;c=addChar(makeChar({name:filterText(String(pr.n||'Joueur')).slice(0,20),remote:true,peer:P.peer,av:expandAv(pr.av),pos:[...pr.p],nameCol:'#7fe3ff',canClimb:false}));
         this.remote.set(P.peer,c);c.target=[...pr.p];sys(`${c.name} a rejoint le serveur.`);SFX.pop(.5)}
-      c.target=pr.p.map(Number);c.tv=Array.isArray(pr.v)?pr.v.map(Number):[0,0,0];c.tyaw=+pr.y||0;c.grounded=!!pr.g;c.inWater=!!pr.w;c.swimming=!!pr.sm;c.climb=Array.isArray(pr.cl)?{n:pr.cl.map(Number),p:null}:null;
+      c.target=pr.p.map(Number);c.tAt=performance.now();c.tv=Array.isArray(pr.v)?pr.v.map(Number):[0,0,0];c.tyaw=+pr.y||0;c.grounded=!!pr.g;c.inWater=!!pr.w;c.swimming=!!pr.sm;c.climb=Array.isArray(pr.cl)?{n:pr.cl.map(Number),p:null}:null;
       c.emote=typeof pr.e==='string'?pr.e:null;c.dance=!!pr.d;{const nl=String(pr.lb||'');if(nl.startsWith('🏁')&&c.lb!==undefined&&!String(c.lb).startsWith('🏁')){sys(`🏆 ${c.name} a terminé ! (${nl.slice(2)})`);SFX.win()}c.lb=nl}c.lbl=String(pr.lbl||'');if(pr.wv&&!(c.wave>0))c.wave=1.2;if(pr.sw&&!(c.swing>0))c.swing=.38;
       if(pr.dd&&!c.dead){die(c,false);c.dead=99}else if(!pr.dd&&c.dead){c.dead=0;c.pos=[...c.target]}
       const av=expandAv(pr.av);if(JSON.stringify(av)!==JSON.stringify(c.av))c.av=av;
       if(pr.c&&pr.c.i!==c.lastChat){c.lastChat=pr.c.i;if(c.seenChat)say(c,String(pr.c.x||''));c.seenChat=true}else if(!c.seenChat)c.seenChat=true;
-      c.vip=!!pr.vip;c.fid=typeof pr.id==='string'?pr.id.slice(0,60):null;if(c.vip&&!c.name.startsWith('👑')){c.name='👑 '+c.name;c.nameCol='#ffd23f'}if(WORLD.onRemote)try{WORLD.onRemote(c,pr)}catch(e){console.warn(e)}
+      {const gt=String(pr.gt||'').replace(/[^A-Z0-9]/g,'').slice(0,5);if(gt!==(c.gt||'')){c.gt=gt;const tg=c.bw&&c.bw.querySelector('.tag');if(tg)tg.textContent=(gt?`[${gt}] `:'')+c.name}}c.vip=!!pr.vip;c.fid=typeof pr.id==='string'?pr.id.slice(0,60):null;if(c.vip&&!c.name.startsWith('👑')){c.name='👑 '+c.name;c.nameCol='#ffd23f'}if(WORLD.onRemote)try{WORLD.onRemote(c,pr)}catch(e){console.warn(e)}
       if(pr.r&&pr.r.i!==c.lastReact){if(c.lastReact!==undefined)react(c,String(pr.r.e||'👍').slice(0,8));c.lastReact=pr.r.i}else if(c.lastReact===undefined)c.lastReact=pr.r?.i??0}
     for(const[id,c]of this.remote)if(!seen.has(id)){if(WORLD.onRemoteLeave)try{WORLD.onRemoteLeave(c)}catch(e){}removeRemote(c);this.remote.delete(id);sys(`${c.name} a quitté le serveur.`)}renderPlist()},
   // interpolation douce des autres joueurs
-  step(dt){voiceStep(dt);for(const c of this.remote.values()){if(!c.target||c.dead)continue;const pred=V.add(c.target,V.mul(c.tv||[0,0,0],.08));const d=V.sub(pred,c.pos);
+  step(dt){voiceStep(dt);for(const c of this.remote.values()){if(!c.target||c.dead)continue;const age=Math.min(.25,(performance.now()-(c.tAt||0))/1000+.04),pred=V.add(c.target,V.mul(c.tv||[0,0,0],c.grounded||c.swimming?age:age*.6));const d=V.sub(pred,c.pos);
       if(V.len(d)>12)c.pos=[...c.target];else c.pos=V.add(c.pos,V.mul(d,Math.min(1,dt*10)));c.vel=c.tv||[0,0,0];c.yaw=angLerp(c.yaw,c.tyaw,Math.min(1,dt*12));if(c.climb)c.cphase+=dt*6*Math.abs(c.vel[1]||0);
       const hs=Math.hypot(c.vel[0],c.vel[2]);c.phase+=hs*dt*1.5;if(c.swimming)c.swimPhase=(c.swimPhase||0)+dt*(hs>1?6:2.4)}}};
 function removeRemote(c){c.left=true;c.bw&&c.bw.remove();const i=chars.indexOf(c);if(i>=0)chars.splice(i,1);const j=npcs.indexOf(c);if(j>=0)npcs.splice(j,1)}
 // avatar compact (ids seulement) pour tenir dans la présence
 const AV_KEYS=['skin','haut','bas','visage','chapeau','cheveux','lunettes','dos','cou','epaule'];
-function compactAv(av){return AV_KEYS.map(k=>av[k]||'')}
-function expandAv(a){const o={...DEFAULT_AV};if(Array.isArray(a))AV_KEYS.forEach((k,i)=>{const v=a[i];if(k==='skin'){if(/^#[0-9a-f]{6}$/i.test(v))o.skin=v}else o[k]=v&&typeof v==='string'&&!IT[v]&&typeof PUB_RE!=='undefined'&&PUB_RE.test(v)&&requestPubItem(v),o[k]=v&&IT[v]&&IT[v].cat===(k)?v:(['haut','bas','visage'].includes(k)?DEFAULT_AV[k]:null)});return o}
+function compactAv(av){const b=av.body;return[...AV_KEYS.map(k=>av[k]||''),b?[b.t||'classique',+(+b.h).toFixed(2),+(+b.w).toFixed(2),+(+b.hd).toFixed(2)].join(','):'']}
+function expandAv(a){const o={...DEFAULT_AV};if(Array.isArray(a))AV_KEYS.forEach((k,i)=>{const v=a[i];if(k==='skin'){if(/^#[0-9a-f]{6}$/i.test(v))o.skin=v}else o[k]=v&&typeof v==='string'&&!IT[v]&&typeof PUB_RE!=='undefined'&&PUB_RE.test(v)&&requestPubItem(v),o[k]=v&&IT[v]&&IT[v].cat===(k)?v:(['haut','bas','visage'].includes(k)?DEFAULT_AV[k]:null)});if(Array.isArray(a)&&typeof a[10]==='string'&&a[10]){const[t,h,w,hd]=a[10].split(',');if(typeof BODY_PRESETS!=='undefined'&&BODY_PRESETS[t])o.body={t,h:+h,w:+w,hd:+hd}}return o}

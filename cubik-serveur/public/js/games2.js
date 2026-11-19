@@ -65,13 +65,13 @@ GAMES.zombies={name:'Nuit des Zombies',genre:'Survie',icon:'🧟',colors:['#1d2b
   shop(){const G=this,b=[];for(const id in ZW){const w=ZW[id];if(G.weap.includes(id))continue;b.push([`${w.icon} ${w.name} · ${w.price} pts`,()=>{if(G.pts<w.price){SFX.error();toast('Pas assez de points');return}G.pts-=w.price;G.weap.push(id);G.wi=G.weap.length-1;SFX.buy();toast(w.icon+' '+w.name+' équipé (Q pour changer)')}])}
     const up=Math.round(400*Math.pow(1.6,(G.dmgM-1)/.25));b.push([`❤️ Soin complet · 150 pts`,()=>{if(G.pts<150)return SFX.error();G.pts-=150;G.hp=G.maxHp;SFX.potion?.()}],[`💪 +25 % dégâts · ${up} pts`,()=>{if(G.pts<up)return SFX.error();G.pts-=up;G.dmgM+=.25;SFX.buy()}],[`🛡️ +25 PV max · ${G.maxHp*4} pts`,()=>{if(G.pts<G.maxHp*4)return SFX.error();G.pts-=G.maxHp*4;G.maxHp+=25;G.hp+=25;SFX.buy()}],['Fermer',null]);
     openDialog('🔫 Armurerie',`Tu as ${G.pts} points. Les armes et bonus durent toute la partie.`,b.slice(0,8))},
-  nextWave(){const G=this;G.wave++;const n=G.wave;G.toSpawn=Math.round(5+n*2.4+(n>15?n:0));G.left=G.toSpawn+(n%5===0?1:0);G.boss=n%5===0;G.spawnT=0;scMessage(G.boss?`☠️ VAGUE ${n} : BOSS !`:`🧟 Vague ${n}`,3);SFX.slam?.();
+  nextWave(){const G=this;G.wave++;const n=G.wave;G.toSpawn=Math.round(7+n*3.2+(n>15?n*1.5:0));G.left=G.toSpawn+(n%5===0?1:0);G.boss=n%5===0;G.spawnT=0;scMessage(G.boss?`☠️ VAGUE ${n} : BOSS !`:`🧟 Vague ${n}`,3);SFX.slam?.();
     if(n===10){giveBlox(40,'Vague 10 !')}if(n>G.sv.best){G.sv.best=n;markDirty()}
-    if(G.boss){const p=pick(G.spawns);KIT.mob(G,{name:`☠️ Mégazombie ${n/5}`,av:'zbrute',hp:600+n*90,speed:4.6,dmg:30,rate:1.2,reach:2.2,pts:250,boss:1},[p[0],.3,p[2]])}},
+    if(G.boss){const p=pick(G.spawns);KIT.mob(G,{name:`☠️ Mégazombie ${n/5}`,av:'zbrute',hp:900+n*130,speed:4.6,dmg:30,rate:1.2,reach:2.2,pts:250,boss:1},[p[0],.3,p[2]])}},
   update(dt,t){const G=this;kitTick(G,dt);worldFx(dt,t,false);const onDie=(c,m)=>G.onKill(m);KIT.mobsStep(G,dt);KIT.shotsStep(G,dt,onDie);
     if(G.wave>=30&&G.left<=0&&!G.won){G.won=true;giveBlox(300,'30 vagues survécues !');unlockBadge('zombie');showResult('🏆 Survivant !',`Tu as tenu les 30 vagues ! ${G.pts} points.`,[['Continuer',null],['Rejouer',()=>restartGame()]])}
     if(G.toSpawn>0){G.spawnT-=dt;if(G.spawnT<=0&&G.mobs.length<26){G.spawnT=Math.max(.35,1.6-G.wave*.04);G.toSpawn--;const n=G.wave,p=pick(G.spawns),r=Math.random();
-        const def=r<.2&&n>2?{name:'Coureur',av:'zcourt',hp:30+n*7,speed:7.5+Math.min(2,n*.06),dmg:8,rate:.7,pts:20}:r<.32&&n>4?{name:'Brute',av:'zbrute',hp:150+n*25,speed:3.6,dmg:22,rate:1.3,reach:2,pts:45}:{name:'Zombie',av:'zombie',hp:45+n*12,speed:4.2+Math.min(2.5,n*.08),dmg:12,rate:1,pts:12};
+        const def=r<.2&&n>2?{name:'Coureur',av:'zcourt',hp:30+n*7,speed:7.5+Math.min(2,n*.06),dmg:8,rate:.7,pts:20}:r<.32&&n>4?{name:'Brute',av:'zbrute',hp:150+n*25,speed:3.6,dmg:22,rate:1.3,reach:2,pts:45}:{name:'Zombie',av:'zombie',hp:55+n*16,speed:4.4+Math.min(2.8,n*.09),dmg:14,rate:1,pts:12};
         KIT.mob(G,def,[p[0]+rnd(-4,4),.3,p[2]+rnd(-4,4)])}}
     else if(G.left<=0&&G.mobs.length===0&&G.wave<30){if(G.break<=0){G.break=G.wave?18:10;if(G.wave){G.pts+=50+G.wave*10;sys(`✅ Vague ${G.wave} terminée ! Pause de 18 s : passe à l'armurerie.`);SFX.quest()}}G.break-=dt;if(G.break<=0)G.nextWave()}
     $('zT').textContent=G.wave?`Vague ${G.wave} / 30`:'Préparez-vous…';$('zS').textContent=G.left>0||G.mobs.length?`🧟 ${Math.max(G.left,G.mobs.length)} zombies restants`:`Prochaine vague dans ${Math.ceil(Math.max(0,G.break))} s`;
@@ -95,7 +95,7 @@ GAMES.course={name:'Grand Prix Turbo',genre:'Course',icon:'🏎️',colors:['#e5
       else for(let s=6;s<len;s+=18){const o=(W/2+5)*(s%36<18?1:-1),p=[a[0]+dir[0]*s+dir[1]*o,a[1]+dir[1]*s-dir[0]*o];if(G.ti===1)B(p[0],1.5,p[1],1.2,3,1.2,{mat:'lisse',color:'#2f8a3a'});else TREE(p[0],p[1],3,3)}}
     B(wp[0][0],.16,wp[0][1],4,.08,W,{mat:'lisse',color:'#ffffff',nocol:1});SIGN(wp[0][0],7,wp[0][1]-W/2-1,'DÉPART · '+T.name,true,{size:40});B(wp[0][0],7,wp[0][1]+W/2+1,.6,14,.6,{mat:'metal'});
     G.start=[wp[0][0]-6,.3,wp[0][1]];
-    const names=['Turbo Tom','Lili Drift','Max Nitro','Zoé Flash','Rocket Raoul','Nina Vroum','Kiko Kart'];names.forEach((n,i)=>{const c=spawnNPC(n,'pilote',[wp[0][0]-10-(i>>1)*5,.3,wp[0][1]+(i%2?4:-4)],{still:true,quiet:true,col:'#ffd23f'});c.av={...NPC_AV.pilote,haut:pick(['maillot','tee_bleu','tee_rouge','hoodie_violet']),chapeau:pick(['casquette_rouge','casquette_bleue','casquette_envers'])};c.racer={wp:1,lap:0,skill:.88+i*.018+G.ti*.01,done:0};G.racers.push(c)});
+    const names=['Turbo Tom','Lili Drift','Max Nitro','Zoé Flash','Rocket Raoul','Nina Vroum','Kiko Kart'];names.forEach((n,i)=>{const c=spawnNPC(n,'pilote',[wp[0][0]-10-(i>>1)*5,.3,wp[0][1]+(i%2?4:-4)],{still:true,quiet:true,col:'#ffd23f'});c.av={...NPC_AV.pilote,haut:pick(['maillot','tee_bleu','tee_rouge','hoodie_violet']),chapeau:pick(['casquette_rouge','casquette_bleue','casquette_envers'])};c.racer={wp:1,lap:0,skill:.93+i*.019+G.ti*.015,done:0};G.racers.push(c)});
     G.me={wp:1,lap:0,done:0};WORLD.voidY=-20},
   spawn(){return this.start},
   hud(el){el.innerHTML=`<div class="ghud center"><div class="gtitle" id="gpT"></div><div class="gsub" id="gpS"></div></div><div class="ghud quest" id="gpQ"></div>`},
@@ -134,7 +134,7 @@ GAMES.tour={name:'Tour Infernale',genre:'Obby',icon:'🗼',colors:['#3a0d0d','#f
       const M=[E[0],A[1]],pts=[];for(const[P,Q]of[[A,M],[M,E]]){const L=Math.hypot(Q[0]-P[0],Q[1]-P[1]);for(let d=0;d<L;d+=3.6)pts.push([P[0]+(Q[0]-P[0])*d/(L||1),P[1]+(Q[1]-P[1])*d/(L||1)])}
       const st=pts.filter(p=>Math.hypot(p[0]-A[0],p[1]-A[1]+3.4)>2.6&&Math.hypot(p[0]-E[0],p[1]-E[1])>2.6);
       st.forEach((p,i)=>{const o={color:'#4cc9f0',mat:'lisse'};if(ty===2&&i%2)o.move={axis:Math.abs(p[0]-E[0])<.1?[1,0,0]:[0,0,1],amp:1.6,speed:1+f*.02};if(ty===3&&i%2){o.kind='bounce';delete o.mat}if(ty===4)Object.assign(o,{kind:'conv',dir:[0,0,i%2?1:-1],speed:3+f*.05,color:'#30343d'});if(ty===5){o.mat='verre';o.color='#d8f3ff'}if(ty===6)o.color='#b46bff';
-        const b=B(p[0],y+1+(ty===6?(i%3)*.5:0),p[1],2.4,.4,2.4,o);if(ty===5&&R(f*13+i)<.5)G.fakes.push(b)});
+        const b=B(p[0],y+1+(ty===6?(i%3)*.5:0),p[1],2.4,.4,2.4,o);if(ty===5&&R(f*13+i)<.68)G.fakes.push(b)});
       if(ty===1){G.kill.push({c:[0,y+1.4,0],len:11,speed:1.1+f*.03,ang:R(f+1)*6});if(f>12)G.kill.push({c:[0,y+1.4,0],len:11,speed:1.1+f*.03,ang:R(f+1)*6+Math.PI/2})}
       if(ty===0&&f>8)G.kill.push({c:[0,y+1.6,0],len:7,speed:-1.3-f*.02,ang:0});
       B(E[0],y+FH/2+.6,E[1]-1.6,2,FH+.4,.3,{mat:'bois',mode:4,climb:'wood'});B(E[0],y+1,E[1],3,.5,3,{color:'#2fbf71',mat:'lisse'});
@@ -210,7 +210,7 @@ const TD_PATH=[[-52,-40],[-52,-10],[-20,-10],[-20,-40],[14,-40],[14,0],[-40,0],[
 GAMES.defense={name:'Défense du Royaume',genre:'Stratégie',icon:'🏰',colors:['#2f6a3a','#ffd23f'],maxPlayers:8,music:'rpg',
   desc:"Tower defense : construis et améliore 4 types de tours sur 16 emplacements pour arrêter 40 vagues de monstres (rapides, blindés, volants, boss). Protège le château : 20 vies !",
   badges:['Vague 20 : +50 Blox','Vague 40 : +250 Blox'],
-  build(sv){const G=this;G.sv=sv;sv.best=sv.best||0;G.gold=260;G.lives=20;G.wave=0;G.en=[];G.towers=[];G.queue=[];G.break=15;G.fx=[];setClock(15);
+  build(sv){const G=this;G.sv=sv;sv.best=sv.best||0;G.gold=220;G.lives=20;G.wave=0;G.en=[];G.towers=[];G.queue=[];G.break=15;G.fx=[];setClock(15);
     B(0,-.5,0,140,1,120,{mat:'herbe'});for(let i=0;i<TD_PATH.length-1;i++){const a=TD_PATH[i],b=TD_PATH[i+1];B((a[0]+b[0])/2,.04,(a[1]+b[1])/2,Math.abs(a[0]-b[0])+5,.08,Math.abs(a[1]-b[1])+5,{mat:'sable',color:'#c8b28a',nocol:1})}
     const e=TD_PATH.at(-1);B(e[0]+6,4,e[1],8,8,10,{mat:'pierre'});for(const dz of[-4,4])B(e[0]+6,9,e[1]+dz,3,2,2,{mat:'pierre'});B(e[0]+6,10,e[1],.2,4,.2,{mat:'bois'});B(e[0]+6.8,11.4,e[1],1.4,.9,.1,{mat:'lisse',color:'#e5484d'});
     const s=TD_PATH[0];B(s[0],2,s[1]-4,8,4,1,{mat:'basalte'});
@@ -226,7 +226,7 @@ GAMES.defense={name:'Défense du Royaume',genre:'Stratégie',icon:'🏰',colors:
   nextWave(){const G=this;G.wave++;const n=G.wave;const q=[];const cnt=6+Math.floor(n*1.8);for(let i=0;i<cnt;i++){const r=Math.random();q.push(n%10===0&&i===0?'boss':r<.18&&n>3?'rapide':r<.3&&n>6?'blinde':r<.42&&n>9?'volant':'slime')}G.queue=q;G.spT=0;scMessage(n%10===0?`👑 VAGUE ${n} : BOSS`:`Vague ${n}`,2.5);if(n===20)giveBlox(50,'Vague 20');if(n>G.sv.best){G.sv.best=n;markDirty()}},
   update(dt,t){const G=this,n=G.wave;
     if(G.queue.length){G.spT-=dt;if(G.spT<=0){G.spT=Math.max(.35,1-n*.015);const k=G.queue.shift();const D={slime:{hp:30,sp:5,c:'#2fbf71',s:.9,g:6},rapide:{hp:22,sp:9,c:'#ffd23f',s:.7,g:7},blinde:{hp:110,sp:3.6,c:'#9aa4b2',s:1.2,g:14,arm:.5},volant:{hp:40,sp:6,c:'#b46bff',s:.8,g:10,fly:1},boss:{hp:1500,sp:2.6,c:'#e5484d',s:2.4,g:250}}[k];
-        const hp=D.hp*(1+n*.17)*(n>25?1.4:1);G.en.push({...D,k,hp,max:hp,pos:[TD_PATH[0][0],D.fly?3:D.s*.6,TD_PATH[0][1]],wi:1,slowT:0})}}
+        const hp=D.hp*(1+n*.24)*(n>25?1.5:1);G.en.push({...D,k,hp,max:hp,pos:[TD_PATH[0][0],D.fly?3:D.s*.6,TD_PATH[0][1]],wi:1,slowT:0})}}
     else if(!G.en.length&&n<40){G.break-=dt;if(G.break<=0){G.break=12;if(n){G.gold+=40+n*6;SFX.quest()}G.nextWave()}}
     for(let i=G.en.length-1;i>=0;i--){const e=G.en[i];const w=TD_PATH[e.wi];if(!w){G.en.splice(i,1);G.lives-=e.k==='boss'?10:1;SFX.hurt?.();shake=.3;if(G.lives<=0)G.lose();continue}
       const d=[w[0]-e.pos[0],0,w[1]-e.pos[2]],L=Math.hypot(d[0],d[2]),sp=e.sp*(e.slowT>0?.45:1)*dt;e.slowT-=dt;if(L<sp){e.pos[0]=w[0];e.pos[2]=w[1];e.wi++}else{e.pos[0]+=d[0]/L*sp;e.pos[2]+=d[2]/L*sp}}
@@ -241,3 +241,5 @@ GAMES.defense={name:'Défense du Royaume',genre:'Stratégie',icon:'🏰',colors:
   extraDraw(L){for(const e of this.en){const y=e.pos[1]+Math.abs(Math.sin(time*6+e.pos[0]))*.25;L.push({mesh:e.fly?MESH.sphere:MESH.rbox,m:M.chain(M.T(e.pos[0],y,e.pos[2]),M.S(e.s,e.s*.8,e.s)),mode:3,color:e.slowT>0?'#bfe9ff':e.c,shin:120,emis:e.k==='boss'?(HDR?.8:.3):0});
       L.push({mesh:MESH.box,m:M.chain(M.T(e.pos[0],y+e.s*.7+.4,e.pos[2]),M.S(1.2*e.hp/e.max,.12,.12)),mode:3,color:'#2fbf71',emis:HDR?1:.4})}
     for(const f of this.fx){const m=V.mul(V.add(f.a,f.b),.5),d=V.sub(f.b,f.a),len=V.len(d);L.push({mesh:MESH.box,m:M.chain(M.T(...m),M.RY(Math.atan2(d[0],d[2])),M.RX(-Math.asin(clamp(d[1]/len,-1,1))),M.S(.12,.12,len)),mode:3,color:f.c,emis:HDR?2.5:.8})}}};
+
+for(const o of MN_ORES)o.hp=Math.ceil(o.hp*1.7);for(const p of MN_PICK)p[2]=Math.round(p[2]*1.6);for(const b of MN_BAG)b[1]=Math.round(b[1]*1.6);

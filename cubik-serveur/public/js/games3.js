@@ -50,7 +50,7 @@ GAMES.peche={name:'Pêche Paradis',genre:'Simulateur',icon:'🎣',colors:['#1c6a
   boat(){const G=this;openDialog('⛵ Bateau','Où veux-tu aller ?',[...FZONES.map((z,i)=>[`${G.sv.zones.includes(i)?'':'🔒 '}${z[0]}`,()=>{if(!G.sv.zones.includes(i))return toast('Débloque cette zone à la boutique des cannes');const[x,zz]=z[2];pl.pos=[x,1.2,zz+8];pl.vel=[0,0,0];SFX.splash?.()}]),['Annuler',null]])},
   dex(){const G=this,have=Object.keys(G.sv.dex).length;openDialog('📖 Encyclopédie',`${have} / ${FISH.length} espèces\n`+FISH.map(f=>`${G.sv.dex[f[0]]?'✅ '+f[0]+' ×'+G.sv.dex[f[0]]:'❔ ???'} · ${FZONES[f[1]][0]} · ${FRAR[f[2]][0]}`).join('\n'),[['Fermer',null]])},
   update(dt){const G=this,F=G.fish;
-    if(F){if(V.len(pl.vel)>2&&F.state==='wait'){G.stopFish();return}if(F.state==='wait'){F.t-=dt;if(F.t<=0){const f=G.roll(F.zi);Object.assign(F,{state:'bite',f,m:0,dir:1,sp:.55+f[2]*.25,z:rnd(.2,.8),w:.22-f[2]*.03+G.sv.rod*.012,hits:0,need:2+f[2],miss:0,limit:8+f[2]*2});$('fiG').style.display='';$('fiT').textContent='Un poisson mord ! Ferre quand le curseur est dans la zone verte.';SFX.splash?.()}}
+    if(F){if(V.len(pl.vel)>2&&F.state==='wait'){G.stopFish();return}if(F.state==='wait'){F.t-=dt;if(F.t<=0){const f=G.roll(F.zi);Object.assign(F,{state:'bite',f,m:0,dir:1,sp:.55+f[2]*.25,z:rnd(.2,.8),w:.22-f[2]*.03+G.sv.rod*.012,hits:0,need:3+f[2],miss:0,limit:8+f[2]*2});$('fiG').style.display='';$('fiT').textContent='Un poisson mord ! Ferre quand le curseur est dans la zone verte.';SFX.splash?.()}}
       else{F.m+=F.dir*F.sp*dt;if(F.m>1){F.m=1;F.dir=-1}if(F.m<0){F.m=0;F.dir=1}F.limit-=dt;if(F.limit<=0){toast('💨 Trop lent, il est parti…');G.stopFish();return}
         $('fiZ').style.left=((F.z-F.w/2)*100)+'%';$('fiZ').style.width=(F.w*100)+'%';$('fiM').style.left=(F.m*100)+'%';$('fiT').textContent=`${F.hits}/${F.need} · ratés ${F.miss}/3 · ${Math.ceil(F.limit)} s`}}
     $('fiC').textContent=fmtCash(G.sv.cash);$('fiS').textContent=`${RODS[G.sv.rod][0]} · 🪣 ${G.bag.length}/${20+G.sv.rod*10} · 📖 ${Object.keys(G.sv.dex).length}/${FISH.length} · zone ${FZONES[G.zoneAt()][0]}`}};
@@ -83,7 +83,7 @@ GAMES.animaux={name:'Simulateur d\'Animaux',genre:'Simulateur',icon:'🐾',color
   input(k){if(k==='attack'){let b=null,bd=14;for(const p of this.piles){const d=V.len(V.sub(p.pos,pl.pos));if(d<bd){bd=d;b=p}}if(b){this.tgt=b;pl.swing=.3;b.hp-=this.power()*.25;SFX.coin?.();sparks(b.pos,[3,2.4,.6],5)}}},
   click(ray){let best=null,bt=40;for(const p of this.piles){const t=rayAABB(ray.o,ray.d,{mn:V.sub(p.pos,[p.s,0,p.s]),mx:V.add(p.pos,[p.s,p.s*1.4,p.s])});if(t!=null&&t<bt){bt=t;best=p}}if(best){this.tgt=best;best.hp-=this.power()*.25;SFX.coin?.();return true}return false},
   update(dt,t){const G=this,zi=G.zoneOf(pl.pos[2]);G.spT-=dt;
-    if(G.spT<=0){G.spT=.5;for(let i=0;i<=G.sv.zone;i++){const n=G.piles.filter(p=>p.z===i).length;if(n<14){const big=Math.random()<.12,v=PZONES[i][2]*(big?12:1)*rnd(4,7);G.piles.push({z:i,pos:[rnd(-25,25),0,-i*60+rnd(-24,24)],hp:v*1.2,max:v*1.2,v,s:big?1.6:.8})}}}
+    if(G.spT<=0){G.spT=.5;for(let i=0;i<=G.sv.zone;i++){const n=G.piles.filter(p=>p.z===i).length;if(n<14){const big=Math.random()<.12,v=PZONES[i][2]*(big?12:1)*rnd(4,7);G.piles.push({z:i,pos:[rnd(-25,25),0,-i*60+rnd(-24,24)],hp:v*2,max:v*2,v,s:big?1.6:.8})}}}
     if(G.tgt&&!G.piles.includes(G.tgt))G.tgt=null;
     G.pets.forEach((p,i)=>{const a=i/G.pets.length*6.28+t*.3;let goal=G.tgt?V.add(G.tgt.pos,[Math.cos(a)*1.6,0,Math.sin(a)*1.6]):V.add(pl.pos,[Math.cos(a)*2.4,0,Math.sin(a)*2.4]);const d=V.sub(goal,p.pos);d[1]=0;const L=V.len(d);p.pos=V.add(p.pos,V.mul(d,Math.min(1,dt*(L>20?20:6))));p.pos[1]=.5+Math.abs(Math.sin(t*8+i))*.4;
       if(G.tgt&&L<1.5){G.tgt.hp-=p.d[2]*(1+p.lv*.5)*dt*1.4;if(Math.random()<dt*4)sparks(G.tgt.pos,[3,2.4,.6],3,.5)}});
@@ -140,7 +140,7 @@ const PZ_TOP=[['sauce','🍅 Sauce tomate','#e5484d'],['fromage','🧀 Fromage',
 GAMES.pizzeria={name:'Pizzeria Folle',genre:'Tycoon',icon:'🍕',colors:['#e5484d','#ffd23f'],maxPlayers:8,music:'tycoon',
   desc:"Gère ta pizzeria pendant 15 jours : prends les commandes, prépare la pâte, ajoute les bons ingrédients, cuis et sers avant que les clients s'impatientent. Améliore le four, la déco et embauche un assistant entre chaque journée !",
   badges:['Jour 15 : +200 Blox','Journée parfaite : +20 Blox'],
-  build(sv){const G=this;G.sv=sv;sv.day=sv.day||1;sv.cash=sv.cash||0;sv.up=sv.up||{};G.cust=[];G.hold=null;G.oven=[];G.dayT=150;G.served=0;G.lost=0;G.spT=3;G.open=true;setClock(13);
+  build(sv){const G=this;G.sv=sv;sv.day=sv.day||1;sv.cash=sv.cash||0;sv.up=sv.up||{};G.cust=[];G.hold=null;G.oven=[];G.dayT=180;G.served=0;G.lost=0;G.spT=3;G.open=true;setClock(13);
     B(0,-.5,0,60,1,50,{mat:'herbe'});B(0,.05,0,30,.1,24,{mat:'planches',color:sv.up.deco?'#7a4a2a':'#a0745a'});for(const[x,z,sx,sz]of[[0,-12,30,.4],[-15,0,.4,24],[15,0,.4,24]])B(x,3,z,sx,6,sz,{mat:'brique',color:sv.up.deco?'#c0504d':'#d8cbb5'});
     B(0,1,1,24,2,1.2,{mat:'bois',color:'#6d4a2a'});SIGN(0,7,12.5,'PIZZERIA FOLLE',true,{size:48});
     G.st=[['pate','🫓 Pâte',-11,-9],...PZ_TOP.map((t,i)=>[t[0],t[1],-7+i*3,-9]),['four','🔥 Four',11,-9],['poubelle','🗑️ Poubelle',13,-4]];
@@ -226,7 +226,7 @@ GAMES.prison={name:'Évasion de Prison',genre:'Aventure',icon:'🔐',colors:['#3
   catchMe(who){const G=this;if(G.cool>0)return;G.cool=2;G.caught++;G.sv.caught=(G.sv.caught||0)+1;scMessage(`🚨 ${who} t'a repéré ! Retour en arrière…`,2.4);SFX.scream?.();shake=.4;pl.pos=this.spawn();pl.vel=[0,0,0];markDirty()},
   update(dt,t){const G=this;G.time+=dt;G.cool=Math.max(0,(G.cool||0)-dt);worldFx(dt,t,false);
     for(const c of G.guards){const g=c.gp,w=g.path[g.i%g.path.length],d=V.sub(w,c.pos);d[1]=0;if(V.len(d)<1)g.i++;c.forceWish=V.norm(d);
-      const f=[Math.sin(c.yaw),0,Math.cos(c.yaw)],to=V.sub(pl.pos,c.pos);to[1]=0;const L=V.len(to),seeR=pl.crouch?5:8.5;if(!pl.dead&&L<seeR&&Math.abs(pl.pos[1]-c.pos[1])<2&&V.dot(V.mul(to,1/(L||1)),f)>.45&&G.los(c.pos,pl.pos))G.catchMe(c.name)}
+      const f=[Math.sin(c.yaw),0,Math.cos(c.yaw)],to=V.sub(pl.pos,c.pos);to[1]=0;const L=V.len(to),seeR=pl.crouch?5.5:10;if(!pl.dead&&L<seeR&&Math.abs(pl.pos[1]-c.pos[1])<2&&V.dot(V.mul(to,1/(L||1)),f)>.45&&G.los(c.pos,pl.pos))G.catchMe(c.name)}
     if(G.ch===3)for(const s of G.spots){s.a+=s.sp*dt;const p=[s.c[0]+Math.cos(s.a)*s.R,0,s.c[2]+Math.sin(s.a)*s.R*.6];s.p=p;if(Math.hypot(pl.pos[0]-p[0],pl.pos[2]-p[2])<s.r&&pl.pos[1]<2)G.catchMe('Un projecteur')}
     if(G.ch===4&&pl.pos[2]>97)G.setCh(5,'Chapitre 6 : la forêt ! Rejoins la camionnette blanche');
     if(G.ch>=5&&!G.won&&inBox(V.add(pl.pos,[0,1,0]),G.van)){G.won=true;G.sv.ch=0;G.sv.inv=[];G.sv.code=null;G.sv.wins=(G.sv.wins||0)+1;giveBlox(150,'Évasion réussie !');if(!G.caught){giveBlox(100,'Sans se faire prendre !')}unlockBadge('evasion');markDirty();confetti(V.add(pl.pos,[0,2,0]));
@@ -236,3 +236,5 @@ GAMES.prison={name:'Évasion de Prison',genre:'Aventure',icon:'🔐',colors:['#3
   extraDraw(L){const G=this;if(G.ch===3)for(const s of G.spots)if(s.p){L.push({mesh:MESH.cyl,m:M.chain(M.T(s.p[0],.06,s.p[2]),M.S(s.r*2,.05,s.r*2)),mode:3,color:'#fff6b0',emis:HDR?1.6:.6})}
     for(const c of G.guards){const f=[Math.sin(c.yaw),0,Math.cos(c.yaw)];L.push({mesh:MESH.cone,m:M.chain(M.T(c.pos[0]+f[0]*4,.05,c.pos[2]+f[2]*4),M.RY(c.yaw),M.RX(Math.PI/2),M.S(5,8,.05)),mode:9,color:'#ff4d4d'})}},
   exit(){WORLD.lights=[]}};
+
+for(const r of RODS)r[2]=Math.round(r[2]*2);for(const z of FZONES)z[1]=Math.round(z[1]*2.5);for(const z of PZONES)z[1]=Math.round(z[1]*2);

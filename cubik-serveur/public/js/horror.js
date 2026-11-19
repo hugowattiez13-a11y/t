@@ -17,44 +17,55 @@ SONGS.manoir={...SONGS.horreur,bpm:70,key:44};SONGS.camp={...SONGS.horreur,bpm:5
 function makeHorror(cfg){return{name:cfg.name,genre:'Horreur',icon:cfg.icon,colors:cfg.colors,desc:cfg.desc,badges:cfg.badges,maxPlayers:8,music:cfg.music,
   passes:[{id:'lampe',name:'Super lampe',icon:'🔦',price:120,perk:'none',desc:'Lampe torche deux fois plus puissante.'},{id:'vit',name:'Baskets de fuite',icon:'👟',price:150,perk:'speed',desc:'Cours plus vite que les monstres.'}],
   build(sv){const G=this;G.sv=sv;G.items=[];G.got=new Set();G.teamGot=new Set();G.monsters=[];G.bananas=[];G.traps=[];G.won=false;G.phase=0;G.held=0;G.timer=0;G.st=0;G.surv=0;
-    WORLD.lights=[];WORLD.emitters=[];WORLD.meshes=[];WORLD.fog=.035;WORLD.fogCol=[.02,.025,.04];setClock(.5);resetSkyNight();
+    G.net=true;WORLD.lights=[];WORLD.emitters=[];WORLD.meshes=[];WORLD.fog=.035;WORLD.fogCol=[.02,.025,.04];setClock(.5);resetSkyNight();
     G.torch={pos:[0,0,0],color:'#fff2cc',range:16,bright:2.6,base:2.6};WORLD.lights.push(G.torch);
     cfg.build(G,HB_);for(const it of G.items)it.st=it.st||0;G.stages=cfg.stages||[{goal:cfg.goal,hint:cfg.hint,icon:cfg.itemIcon,msg:cfg.unlock,done:cfg.onUnlock}];G.total=G.items.filter(i=>i.st===0).length;
     G.addMonster=m=>{const c=spawnNPC(m.name,m.av,m.pos,{still:true,quiet:true,col:'#ff4d4d'});c.monster={home:[...m.pos],speed:m.speed,aggro:m.aggro,cd:0,stun:0,honkT:2,path:m.path||null,pi:0};c.walk=m.speed;G.monsters.push(c);return c};
     for(const m of G.mspawn)G.addMonster(m);
-    WORLD.prompts=[];for(const b of G.bananas)WORLD.prompts.push({who:{pos:b.pos,name:'banane'},label:'Prendre des bananes',act:()=>{G.held=Math.min(5,G.held+3);SFX.pickup();toast('🍌 ×'+G.held+' — appuie sur F pour en lancer une')},range:2.5})},
+    G.boT=rnd(120,200);G.black=0;G.hid=null;pl.hidden=false;
+    for(const hp of G.hides||[]){B(hp[0],1.6,hp[1],1.8,3.2,1.1,{mat:'bois',color:'#3a2618'});B(hp[0],1.6,hp[1]+.56,.1,2.6,.05,{mat:'metal',color:'#1a120c',nocol:1})}
+    WORLD.prompts=[];for(const hp of G.hides||[])WORLD.prompts.push({who:{pos:[hp[0],0,hp[1]+1]},label:'Se cacher',act:()=>G.hide(hp)});for(const b of G.bananas)WORLD.prompts.push({who:{pos:b.pos,name:'banane'},label:'Prendre des bananes',act:()=>{G.held=Math.min(5,G.held+3);SFX.pickup();toast('🍌 ×'+G.held+' — appuie sur F pour en lancer une')},range:2.5})},
   spawn(){return this.start||[0,.3,0]},
   hud(el){el.innerHTML=`<div class="ghud center"><div class="gtitle" id="hoT">${cfg.goal} 0 / 0</div><div class="gsub" id="hoS">${cfg.hint}</div></div><div class="ghud quest" id="hoB">🍌 0 · F pour lancer</div>`},
-  mpState(){return{got:[...this.got].slice(0,60),hw:this.won?1:0,hs:this.st}},
-  onRemote(c,pr){if(this.surv>0&&+pr.hs>this.st)this.surv=.01;for(const id of Array.isArray(pr.got)?pr.got:[])if(!this.teamGot.has(id)){this.teamGot.add(id);const it=this.items.find(i=>i.id===id);if(it&&!it.taken){it.taken=true;sys(`${(G_ST(this,it.st).icon)||'⭐'} ${c.name} a trouvé ${it.name} !`)}}
+  mpState(){const G=this,o={got:[...G.got].slice(0,60),hw:G.won?1:0,hs:G.st,hd:G.hid?1:0};if(msHost())o.hm=G.monsters.map(c=>[r2(c.pos[0]),r2(c.pos[1]),r2(c.pos[2]),r2(c.yaw),c.monster.stun>0?1:0]);else o.mh=MS.out;return o},
+  onRemote(c,pr){const G=this;c.hidden=!!pr.hd;msHits(c,pr,(i,d)=>{const m=G.monsters[i];if(m&&d<0){m.monster.stun=4;SFX.slip();floatText(V.add(m.pos,[0,3.3,0]),'GLISSADE ! 🍌','#ffd23f')}});
+    if(Array.isArray(pr.hm)&&!msHost()&&c.fid===MS.hostFid)pr.hm.forEach((e,i)=>{const m=G.monsters[i];if(m&&Array.isArray(e)){m.netT=[+e[0],+e[1],+e[2]];m.netY=+e[3];m.netS=!!e[4]}});
+    if(this.surv>0&&+pr.hs>this.st)this.surv=.01;for(const id of Array.isArray(pr.got)?pr.got:[])if(!this.teamGot.has(id)){this.teamGot.add(id);const it=this.items.find(i=>i.id===id);if(it&&!it.taken){it.taken=true;sys(`${(G_ST(this,it.st).icon)||'⭐'} ${c.name} a trouvé ${it.name} !`)}}
     if(pr.hw&&!c.hw){c.hw=true;sys(`🎉 ${c.name} s'est échappé !`)}},
-  input(k){if(k==='attack')this.throwBanana()},
+  input(k){if(k==='attack'){if(this.hid)return this.hide(this.hid);this.throwBanana()}},
+  hide(hp){const G=this;if(G.hid){G.hid=null;pl.hidden=false;pl.frozen=false;pl.pos=[hp[0],.3,hp[1]+1.4];SFX.door?.();MP.sendT=0;return}G.hid=hp;pl.hidden=true;pl.frozen=true;pl.pos=[hp[0],.3,hp[1]];pl.vel=[0,0,0];SFX.door?.();scMessage('🚪 Caché ! Retiens ton souffle… (E ou F pour sortir)',2.5);MP.sendT=0},
   nextStage(){const G=this,S=G.stages[G.st];SFX.levelUp();if(S.msg)scMessage(S.msg,4);S.done&&S.done(G);finalizeWorld();G.st++;G.surv=0;const N=G.stages[G.st];
     if(N&&N.spawn)for(const m of N.spawn)G.addMonster(m);if(N&&N.survive){shake=.5;SFX.scream?.()}if(!N){G.phase=1}markDirty()},
   throwBanana(){const G=this;if(G.held<=0){floatText(V.add(pl.pos,[0,3,0]),'Pas de banane','#ffd23f');return}G.held--;const f=[Math.sin(pl.yaw),0,Math.cos(pl.yaw)];const p=V.add(pl.pos,V.mul(f,-1.4));G.traps.push({pos:[p[0],.12,p[2]],t:60,kind:'banane'});SFX.slip()},
   update(dt,t){const G=this;G.timer+=dt;const P=V.add(pl.pos,[0,1.2,0]);
     // lampe torche devant le joueur
     const f=[Math.sin(pl.yaw),0,Math.cos(pl.yaw)];G.torch.pos=V.add(pl.pos,[f[0]*2.2,2.1,f[2]*2.2]);G.torch.range=hasPass(gameKey(),'lampe')?24:15;G.torch.bright=pl.dead?0:G.torch.base*(Math.random()<.01?.3:1);
-    worldFx(dt,t,false);
+    worldFx(dt,t,false);if(G.hid){pl.pos=[G.hid[0],.3,G.hid[1]];pl.vel=[0,0,0]}
+    G.boT-=dt;if(G.boT<=0&&!G.black){G.boT=rnd(150,240);G.black=16;SFX.thunder?.();shake=.3;scMessage('💡 COUPURE DE COURANT ! Les monstres en profitent…',3)}
+    if(G.black>0){G.black-=dt;for(const L of WORLD.lights)if(L!==G.torch&&!L.boat)L.bright=Math.random()<.02?L.base*.6:0;if(G.black<=0){for(const L of WORLD.lights)L.bright=L.base;toast('💡 Le courant revient')}}
+    const loud=!pl.crouch&&Math.hypot(pl.vel[0],pl.vel[2])>7&&pl.grounded;
     // objets à trouver
     const S=G.stages[G.st];
     for(const it of G.items){if(it.taken||it.st>G.st)continue;if(V.len(V.sub(P,it.pos))<1.6){it.taken=true;G.got.add(it.id);G.teamGot.add(it.id);SFX.pickup();sparks(it.pos,[3,2.4,.6],16);toast(`${G_ST(G,it.st).icon} ${it.name} trouvé !`);MP.sendT=0}}
     if(S&&!S.survive){const cur=G.items.filter(i=>i.st===G.st),n=cur.filter(i=>i.taken).length;$('hoT').textContent=`${S.goal} ${n} / ${cur.length}`;$('hoS').textContent=`Étape ${G.st+1}/${G.stages.length} · ${S.hint}`;if(n>=cur.length)G.nextStage()}
     else if(S&&S.survive){if(!G.surv)G.surv=S.survive;G.surv-=dt;$('hoT').textContent=`${S.goal} ${Math.max(0,Math.ceil(G.surv))} s`;$('hoS').textContent=`Étape ${G.st+1}/${G.stages.length} · ${S.hint}`;if(G.surv<=0){G.surv=0;G.nextStage()}}
     else{$('hoT').textContent=cfg.exitGoal||'🚪 Fuyez !';$('hoS').textContent=cfg.exitHint||'La sortie est ouverte !'}
-    $('hoB').textContent=`🍌 ${G.held} · F/clic pour lancer · ⏱ ${fmtT(G.timer)}`;
+    $('hoB').textContent=`🍌 ${G.held} · F : banane · Ctrl : s'accroupir (silencieux) · E : armoire${G.black>0?' · 💡 COUPURE':''} · ⏱ ${fmtT(G.timer)}`;
     if(G.phase&&!G.won&&G.door&&inBox(P,G.door,.3)){G.won=true;MP.sendT=0;confetti(V.add(pl.pos,[0,2,0]));const blox=40+Math.max(0,Math.round(60-G.timer/30));giveBlox(blox,'Évasion réussie');unlockBadge('horreur');G.sv.wins=(G.sv.wins||0)+1;markDirty();
       showResult('Évadé ! 🎉',`Temps : ${fmtT(G.timer)} · +${blox} Blox. Aide tes amis encore coincés !`,[['Continuer',null],['Rejouer',()=>restartGame()]])}
     // pièges drôles
     for(const tr of G.cushions)if(inBox(P,tr,.1)&&!tr.cool){tr.cool=3;SFX.prout();floatText(V.add(pl.pos,[0,3,0]),'PROUT 💨','#9be36b');for(let i=0;i<12;i++)emit({pos:V.add(pl.pos,[rnd(-.4,.4),.3,rnd(-.4,.4)]),vel:[rnd(-1,1),rnd(.5,1.5),rnd(-1,1)],life:1.4,size:.4,size1:1.2,col:[.6,.8,.3],alpha:.35});for(const c of G.monsters)if(V.len(V.sub(c.pos,pl.pos))<30)c.monster.alert=4}else if(tr.cool>0)tr.cool-=dt;
     for(const z of G.scares)if(!z.done&&inBox(P,z,.2)){z.done=true;if(z.kind==='poulet'){SFX.chicken();scMessage('🐔 BWAAAK !',1.5);shake=.4}else{jumpscare();setTimeout(()=>{SFX.honk();scMessage('Haha, je t\'ai eu ! 🤡',2)},700)}}
-    for(let i=G.traps.length-1;i>=0;i--){const tr=G.traps[i];tr.t-=dt;if(tr.t<=0){G.traps.splice(i,1);continue}for(const c of G.monsters)if(!c.monster.stun&&V.len(V.sub(c.pos,tr.pos))<1.1){c.monster.stun=4;SFX.slip();SFX.dizzy();floatText(V.add(c.pos,[0,3.3,0]),'GLISSADE ! 🍌','#ffd23f');c.a.lean=-1.2;G.traps.splice(i,1);break}}
+    for(let i=G.traps.length-1;i>=0;i--){const tr=G.traps[i];tr.t-=dt;if(tr.t<=0){G.traps.splice(i,1);continue}for(const c of G.monsters)if(!c.monster.stun&&!c.netS&&V.len(V.sub(c.pos,tr.pos))<1.1){c.monster.stun=4;if(G.net&&!msHost())msHit(G.monsters.indexOf(c),-1);SFX.slip();SFX.dizzy();floatText(V.add(c.pos,[0,3.3,0]),'GLISSADE ! 🍌','#ffd23f');c.a.lean=-1.2;G.traps.splice(i,1);break}}
     // monstres
-    for(const c of G.monsters){const m=c.monster;m.cd-=dt;m.honkT-=dt;if(m.alert>0)m.alert-=dt;
+    if(G.net&&!msHost()){for(const c of G.monsters){const m=c.monster;m.cd-=dt;m.honkT-=dt;if(c.netT){c.pos=V.add(c.pos,V.mul(V.sub(c.netT,c.pos),Math.min(1,dt*10)));c.yaw=lerpAngle(c.yaw,c.netY||0,Math.min(1,dt*10));const dd=V.sub(c.netT,c.pos);c.vel=[dd[0]*6,c.vel[1],dd[2]*6]}c.forceWish=[0,0,0];c.emote=c.netS?'toupie':null;
+        const L=V.len(V.sub([pl.pos[0],0,pl.pos[2]],[c.pos[0],0,c.pos[2]]));if(!c.netS&&L<14&&m.honkT<=0){m.honkT=rnd(2,4);cfg.monsterSound(L<8?1:.5)}if(!pl.dead&&!G.won&&!c.netS&&L<1.4&&m.cd<=0){m.cd=2;cfg.caught(c);die(pl,false)}}}
+    else for(const c of G.monsters){const m=c.monster;m.cd-=dt;m.honkT-=dt;if(m.alert>0)m.alert-=dt;if(loud&&V.len(V.sub(pl.pos,c.pos))<26){m.alert=4;m.heard=[...pl.pos]}
       if(m.stun>0){m.stun-=dt;c.forceWish=[0,0,0];c.emote='toupie';if(Math.random()<dt*8)emit({pos:V.add(c.pos,[Math.cos(t*6)*.6,3,Math.sin(t*6)*.6]),vel:[0,0,0],life:.3,size:.15,size1:0,col:[3,3,.5],add:1,shape:2});continue}c.emote=null;
-      const d=V.sub(pl.pos,c.pos);d[1]=0;const L=V.len(d),frantic=G.surv>0,aggro=m.aggro*(m.alert>0||frantic?2:1)*(pl.crouch?.6:1);
-      if(!pl.dead&&!G.won&&L<aggro){c.forceWish=L>.8?V.mul(d,1/L):[0,0,0];c.walk=m.speed*(G.phase?1.15:1)*(frantic?1.12:1)*(1+G.st*.04);if(m.honkT<=0){m.honkT=rnd(2,4);cfg.monsterSound(V.len(d)<12?1:.5)}
-        if(L<1.4&&m.cd<=0){m.cd=2;cfg.caught(c);die(pl,false)}}
+      const tg=msNearest(c.pos)||{pos:[1e5,0,1e5],dead:true};const d=V.sub(tg.pos,c.pos);d[1]=0;const L=V.len(d),frantic=G.surv>0,aggro=m.aggro*(m.alert>0||frantic?2:1)*(tg===pl&&pl.crouch?.6:1)*(G.black>0?1.4:1);
+      if(!tg.dead&&!G.won&&L<aggro){c.forceWish=L>.8?V.mul(d,1/L):[0,0,0];c.walk=m.speed*(G.phase?1.15:1)*(frantic?1.12:1)*(1+G.st*.05)*(G.black>0?1.25:1);if(m.honkT<=0){m.honkT=rnd(2,4);cfg.monsterSound(V.len(d)<12?1:.5)}
+        if(tg===pl&&L<1.4&&m.cd<=0){m.cd=2;cfg.caught(c);die(pl,false)}}
+      else if(m.heard&&m.alert>0){const dd=V.sub(m.heard,c.pos);dd[1]=0;c.forceWish=V.len(dd)>1.5?V.norm(dd):[0,0,0];c.walk=m.speed*.85}
       else if(m.path){const w=m.path[m.pi%m.path.length],dd=V.sub(w,c.pos);dd[1]=0;if(V.len(dd)<1.5)m.pi++;c.forceWish=V.norm(dd);c.walk=m.speed*.55}
       else{const h=V.sub(m.home,c.pos);h[1]=0;c.forceWish=V.len(h)>1.5?V.norm(h):[0,0,0]}}
     if(Math.random()<dt*.05)SFX[pick(['creak','whisper','door'])]()},
@@ -112,6 +123,7 @@ GAMES.manoir=makeHorror({name:'Manoir des Farces',icon:'🤡',colors:['#3a1f4a',
     for(let i=0;i<4;i++)B(52+(i%2)*8,.6,22+Math.floor(i/2)*6,3,1.2,1,{mat:'bois',color:'#3a2618'});h.light(56,6,26,'#c8b0ff',12,1.2,.7);h.light(56,4,39,'#ff6060',8,1,.9);SIGN(48,4,30,'CHAPELLE',false,{size:40,yaw:Math.PI/2});
     [[-58,1,33],[-2,1,-60],[0,1,34],[38,1,6],[-38,1,-6]].forEach((p,i)=>G.items.push({id:'k'+i,name:'une clé de crypte',pos:p,taken:false,st:1}));
     [[52,1,39],[60,1,39],[56,1,40],[-63,1,25]].forEach((p,i)=>G.items.push({id:'h'+i,name:'une pièce du Klaxon',pos:p,taken:false,st:2}));
+    G.hides=[[-17,-12],[18,12],[-44,6],[40,-8],[-4,-38],[26,-38],[-62,24],[60,22],[-6,-60],[-24,-36]];
     G.mspawn=[{name:'Bobo le clown',av:'clown',pos:[0,.2,-30],speed:6.4,aggro:18,path:[[0,0,-30],[-30,0,-32],[-34,0,0],[0,0,0],[34,0,0],[30,0,-32]]},{name:'P\'tit Bobo',av:'clown',pos:[34,.2,0],speed:5.6,aggro:13}]}});
 
 GAMES.camp=makeHorror({name:'Camp Nounours',icon:'🧸',colors:['#1d3b2a','#ff8a3d'],music:'camp',badges:['S\'échapper : jusqu\'à +100 Blox'],
@@ -144,4 +156,5 @@ GAMES.camp=makeHorror({name:'Camp Nounours',icon:'🧸',colors:['#1d3b2a','#ff8a
     // extension : hangar à bateaux, cabane du bûcheron
     h.room(55,-45,12,10,4,'planches','#4a3426',[['w',0]]);h.room(-65,10,10,10,4,'planches','#5a3a24',[['e',0]]);h.light(55,3.4,-45,'#ffb35a',8,1.2,.6);h.light(-65,3.4,10,'#ffb35a',8,1.2,.6);
     [[56,1,-46],[-66,1,11],[14,1,36],[3,1.2,50],[46,9.6,-24]].forEach((p,i)=>G.items.push({id:'e'+i,name:'un bidon d\'essence',pos:p,taken:false,st:1}));
+    G.hides=[[-16,16],[16,40],[-16,40],[4,47],[-52,-24],[58,-48],[-68,6],[30,10]];
     G.mspawn=[{name:'Gros Nounours',av:'nounours',pos:[30,.2,-10],speed:6,aggro:20,path:[[30,0,-10],[-30,0,-10],[-40,0,30],[40,0,30]]},{name:'Nounours Câlin',av:'nounours',pos:[-40,.2,-30],speed:5.4,aggro:15},{name:'Mini Nounours',av:'nounours',pos:[50,.2,30],speed:7,aggro:11}]}});

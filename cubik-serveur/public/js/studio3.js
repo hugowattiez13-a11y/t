@@ -59,3 +59,16 @@ function st3Models(){ACC.models=ACC.models||[];const L=selList();const list=el('
   ACC.models.forEach((md,k)=>list.append(el('button',{text:`📦 ${md.n} · ${md.o.length} obj.`,onclick:()=>{const p=hitPoint({o:STUDIO.cam.pos,d:camDir()})||[0,0,0],b=selBounds(md.o),off=V.sub(p,[b.c[0],b.mn[1],b.c[2]]);snapshot();const C=cloneObjs(md.o,off);CUR_GAME.objects.push(...C);rebuildEditor();setSel(C);m.remove();toast('📦 '+md.n+' inséré')},oncontextmenu:e=>{e.preventDefault();ACC.models.splice(k,1);markDirty();m.remove();st3Models()}})))}
 if(typeof studioBoot==='function'){const sb=studioBoot;studioBoot=async function(...a){const r=await sb.apply(this,a);st3Init();return r}}
 document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{if(window.CUBIK_MODE==='studio'||typeof STUDIO!=='undefined')st3Init()},500));
+
+/* ---------- sélection rectangle (Maj + glisser, ou bouton ▭ sur mobile) ---------- */
+(()=>{let box=null,st=null;const v=()=>$('stView');
+  addEventListener('pointerdown',e=>{if(MODE!=='studio'||!CUR_GAME||STUDIO.testing)return;const V_=v();if(!V_||!V_.contains(e.target)||e.target!==cv&&e.target!==V_)return;if(!(e.shiftKey||ST3.marq))return;
+    e.stopPropagation();e.preventDefault();st=[e.clientX,e.clientY];box=el('div',{style:'position:fixed;border:2px dashed #3d7eff;background:#3d7eff22;z-index:20;pointer-events:none'});document.body.append(box);upd(e)},true);
+  const upd=e=>{if(!box)return;const x0=Math.min(st[0],e.clientX),y0=Math.min(st[1],e.clientY);Object.assign(box.style,{left:x0+'px',top:y0+'px',width:Math.abs(e.clientX-st[0])+'px',height:Math.abs(e.clientY-st[1])+'px'})};
+  addEventListener('pointermove',e=>{if(box){e.stopPropagation();upd(e)}},true);
+  addEventListener('pointerup',e=>{if(!box)return;e.stopPropagation();const r=cv.getBoundingClientRect(),x0=Math.min(st[0],e.clientX)-r.left,x1=Math.max(st[0],e.clientX)-r.left,y0=Math.min(st[1],e.clientY)-r.top,y1=Math.max(st[1],e.clientY)-r.top;box.remove();box=null;
+    if(x1-x0<6&&y1-y0<6)return;const L=CUR_GAME.objects.filter(o=>{if(o.locked||(o.size[0]>=60&&o.size[2]>=60))return false;const p=project(lastVP,o.pos,r.width,r.height);return p&&p[0]>=x0&&p[0]<=x1&&p[1]>=y0&&p[1]<=y1});
+    if(L.length){setSel(L);toast(`▭ ${L.length} objet(s) sélectionné(s)`)}else toast('Aucun objet dans le rectangle');if(ST3.marq){ST3.marq=false;document.body.classList.remove('marq')}},true);
+  const sb=()=>{const bar=$('stSelBar');if(!bar||bar.dataset.mq)return;bar.dataset.mq=1};setTimeout(sb,1000);
+  window.st3Marquee=()=>{ST3.marq=!ST3.marq;document.body.classList.toggle('marq',ST3.marq);toast(ST3.marq?'▭ Glisse sur la vue pour sélectionner plusieurs objets':'Sélection rectangle annulée')};
+  const ui1=buildStudioUI;buildStudioUI=function(){ui1();try{if(RIB==='accueil'||RIB==='modele'){const rib=document.querySelector('#stTop .ribbon');if(rib&&!rib.querySelector('[data-mq]')){const g=rgrp('Sélection',rbtn('▭','Rectangle',st3Marquee));g.dataset.mq=1;rib.append(g)}}}catch(e){}}})();

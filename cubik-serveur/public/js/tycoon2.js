@@ -126,3 +126,6 @@ function t2Assign(G){const taken=new Set([...MP.remote.values()].map(c=>c.plot).
 function t2ReleaseMine(G){const P=G.mine;if(!P)return;P.owner=null;G.mine=null;t2Base(P);G.assignT=.2}
 function t2Release(G,c){const P=G.plots[c.plot];c.plot=null;if(P&&P.owner===c){P.owner=null;t2Base(P)}}
 GAMES.tycoon.lbValue=function(c){return c.isPlayer?fmtCash(this.sv?.cash||0):''};
+
+/* rééquilibrage : progression plus longue */
+for(const it of T2_ITEMS)if(it.price)it.price=Math.round(it.price*2.2);GAMES.tycoon.rebirthPrice=function(){return 6e7*Math.pow(3.2,this.sv.reb||0)};

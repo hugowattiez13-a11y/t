@@ -22,12 +22,12 @@ function finalizeWorld(){for(const p of blocks)bmat(p);refreshSolids()}
 // Hitbox = forme exacte du modèle : jambes (0→1), torse + bras (1→2,02), tête (2,02→2,64)
 const HB=[[0,1,.47,.25],[1,2.02,.96,.26],[2.02,2.64,.35,.35]];
 const HW=.96,HD=.26,H=2.64,STEP=.55,GRAV=40,JUMP=13,WALK=8,CLIMB=5.2,BOUNCE=25;
-function sat(c,b){let best=null,bl=0;for(const h of HB){if(c.pos[1]+h[0]>=b.mx[1]-1e-4||c.pos[1]+h[1]<=b.mn[1]+1e-4)continue;const m=sat1(c,b,h[2],h[3]);if(m){const l=Math.hypot(m[0],m[1]);if(l>bl){bl=l;best=m}}}return best}
+function sat(c,b){let best=null,bl=0;for(const h of(c.hb||HB)){if(c.pos[1]+h[0]>=b.mx[1]-1e-4||c.pos[1]+h[1]<=b.mn[1]+1e-4)continue;const m=sat1(c,b,h[2],h[3]);if(m){const l=Math.hypot(m[0],m[1]);if(l>bl){bl=l;best=m}}}return best}
 function sat1(c,b,HW,HD){const ux=Math.cos(c.yaw),uz=-Math.sin(c.yaw),fx=Math.sin(c.yaw),fz=Math.cos(c.yaw);
   const bx=(b.mx[0]-b.mn[0])/2,bz=(b.mx[2]-b.mn[2])/2,dx=(b.mx[0]+b.mn[0])/2-c.pos[0],dz=(b.mx[2]+b.mn[2])/2-c.pos[2];let best=1e9,r=null;
   for(const[a0,a1]of[[1,0],[0,1],[ux,uz],[fx,fz]]){const rp=HW*Math.abs(ux*a0+uz*a1)+HD*Math.abs(fx*a0+fz*a1),rb=bx*Math.abs(a0)+bz*Math.abs(a1),d=dx*a0+dz*a1,o=rp+rb-Math.abs(d);
     if(o<=1e-5)return null;if(o<best){best=o;const s=d>0?-1:1;r=[a0*s*o,a1*s*o]}}return r}
-const yOv=(c,b)=>c.pos[1]<b.mx[1]-1e-4&&c.pos[1]+H>b.mn[1]+1e-4;
+const yOv=(c,b)=>c.pos[1]<b.mx[1]-1e-4&&c.pos[1]+(c.H||H)>b.mn[1]+1e-4;
 function resolveH(c,wasG){let block=null;
   for(let it=0;it<4;it++){let any=false;
     for(const p of solids){const b=bnd(p);if(!yOv(c,b))continue;const m=sat(c,b);if(!m)continue;const step=b.mx[1]-c.pos[1];
@@ -38,7 +38,7 @@ function resolveH(c,wasG){let block=null;
 function moveV(c,dy){c.pos[1]+=dy;
   for(const p of solids){const b=bnd(p);if(!yOv(c,b)||!sat(c,b))continue;
     if(dy<=0&&b.mx[1]-c.pos[1]<.7){c.pos[1]=b.mx[1];c.vel[1]=0;c.grounded=true;c.ground=p}
-    else if(dy>0&&c.pos[1]+H-b.mn[1]<.7){c.pos[1]=b.mn[1]-H;c.vel[1]=Math.min(0,c.vel[1])}}}
+    else if(dy>0&&c.pos[1]+(c.H||H)-b.mn[1]<.7){c.pos[1]=b.mn[1]-(c.H||H);c.vel[1]=Math.min(0,c.vel[1])}}}
 function probe(c,h,ahead){const f=[Math.sin(c.yaw),0,Math.cos(c.yaw)];return V.add(c.pos,[f[0]*(HD+ahead),h,f[2]*(HD+ahead)])}
 const inside=(pt,p,e=.05)=>{const b=bnd(p);return pt[0]>b.mn[0]-e&&pt[0]<b.mx[0]+e&&pt[1]>b.mn[1]-e&&pt[1]<b.mx[1]+e&&pt[2]>b.mn[2]-e&&pt[2]<b.mx[2]+e};
 function faceNormal(c,p){const dx=c.pos[0]-p.pos[0],dz=c.pos[2]-p.pos[2];return Math.abs(dx)/(p.size[0]/2)>Math.abs(dz)/(p.size[2]/2)?[Math.sign(dx)||1,0,0]:[0,0,Math.sign(dz)||1]}
